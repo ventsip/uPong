@@ -22,21 +22,19 @@ int main()
     stdio_init_all();
 
     // PIO Blinking example
-    PIO pio = pio0;
-    uint offset = pio_add_program(pio, &blink_program);
+    PIO pio;
+    uint sm;
+    uint offset;
+    bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&blink_program, &pio, &sm, &offset, PICO_DEFAULT_LED_PIN, 1, true);
     printf("Loaded program at %d\n", offset);
-
-#ifdef PICO_DEFAULT_LED_PIN
     blink_pin_forever(pio, 0, offset, PICO_DEFAULT_LED_PIN, 2);
-#else
-    blink_pin_forever(pio, 0, offset, 6, 3);
-#endif
+
     // For more pio examples see https://github.com/raspberrypi/pico-examples/tree/master/pio
     // For more examples of timer use see https://github.com/raspberrypi/pico-examples/tree/master/timer
 
     while (true)
     {
-        printf("Hello, world!\n");
+        printf("Loaded program at %d\n", offset);
         sleep_ms(1000);
     }
 }
