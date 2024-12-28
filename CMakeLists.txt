@@ -56,6 +56,7 @@ pico_set_program_version(uPong "0.1")
 
 # Generate PIO header
 pico_generate_pio_header(uPong ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
+pico_generate_pio_header(uPong ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio)
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_usb(uPong 1)
@@ -75,7 +76,6 @@ target_include_directories(uPong PRIVATE
 target_link_libraries(uPong 
         hardware_dma
         hardware_pio
-        hardware_timer
         )
 
 pico_add_extra_outputs(uPong)
