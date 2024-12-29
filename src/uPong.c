@@ -154,6 +154,13 @@ void output_colors_dma(int active_planes)
     dma_channel_hw_addr(DMA_CB_CHANNEL)->al3_read_addr_trig = (uintptr_t)dma_buffer_ptr;
 }
 
+void set_color(uint8_t *colors, uint8_t r, uint8_t g, uint8_t b)
+{
+    colors[0] = g;
+    colors[1] = r;
+    colors[2] = b;
+}
+
 int main()
 {
     stdio_init_all();
@@ -179,26 +186,47 @@ int main()
     dma_init(pio, sm);
 
     int active_planes = 0;
-    int scale = 0;
+    int color = 0;
+    int brightness = 0;
     while (true)
     {
-        scale = (scale + 10) % 256;
-        // fill the led_colors with some random colors
-        for (int i = 0; i < NMB_STRIPS * LEDS_PER_STRIP * BYTES_PER_LED; i++)
+        int red = (color >= 0 && color < 256) ? brightness : 0;
+        int green = (color >= 256 && color < 512) ? brightness : 0;
+        int blue = (color >= 512 && color < 768) ? brightness : 0;
+        color = (color + 1) % 768;
+        brightness = (brightness + 1) % 256;
+
+        for (int y = 0; y < NMB_STRIPS; y++)
         {
-            led_colors[i] = (rand() & 0xff) * scale / 256;
+            for (int x = 0; x < LEDS_PER_STRIP; x++)
+            {
+                if (x == 0 || x == 3)
+                {
+                    set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], 127, 127, 127);
+                }
+                else
+                {
+                    set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], red, green, blue);
+                }
+            }
         }
+        // print color
+        printf("Color: R:%d G:%d  B:%d\n", red, green, blue);
 
         // convert the colors to bit planes
+        absolute_time_t start_time = get_absolute_time();
         colors_to_bitplanes(led_strips_bitplanes[active_planes], led_colors, NMB_STRIPS, LEDS_PER_STRIP, BYTES_PER_LED);
+        absolute_time_t end_time = get_absolute_time();
+        int64_t time_diff_us = absolute_time_diff_us(start_time, end_time);
+        printf("colors_to_bitplanes took %lld us\n", time_diff_us);
 
         sem_acquire_blocking(&reset_delay_complete_sem);
         output_colors_dma(active_planes);
         // toggle active planes
         active_planes ^= 1;
 
-        printf("WS2812 parallel using pin %d\n", WS2812_PIN_BASE);
-        printf("Loaded ws2812 program at pio %d, sm %d, offset %d\n", pio, sm, offset);
-        sleep_ms(100);
+        // printf("WS2812 parallel using pin %d\n", WS2812_PIN_BASE);
+        // printf("Loaded ws2812 program at pio %d, sm %d, offset %d\n", pio, sm, offset);
+        sleep_ms(10);
     }
 }
