@@ -56,7 +56,7 @@ int main()
     init_WS2812();
 
     int frame_buffer_index = 0;
-    int color = 0;
+    int counter = 0;
     int brightness = 0;
     int frame = 0;
     int frame_rate = 0;
@@ -74,26 +74,27 @@ int main()
             last_time = current_time;
         }
 
-        int red = (color >= 0 && color < 256) ? brightness : 0;
-        int green = (color >= 256 && color < 256 + 256) ? brightness : 0;
-        int blue = (color >= 256 + 256 && color < 256 + 256 + 256) ? brightness : 0;
-        color = (color + 2) % (256 + 256 + 256);
-        brightness = (brightness + 4) % 256;
-
         for (int y = 0; y < NMB_STRIPS; y++)
         {
             for (int x = 0; x < LEDS_PER_STRIP; x++)
             {
-                if (x == y)
-                {
-                    set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], 255, 0, 0);
-                }
-                else
+                int color = (counter + x + y * 2) % (256 + 256 + 256);
+                int red = (color >= 0 && color < 256) ? brightness : 0;
+                int green = (color >= 256 && color < 256 + 256) ? brightness : 0;
+                int blue = (color >= 256 + 256 && color < 256 + 256 + 256) ? brightness : 0;
+
+                // if (x == y)
+                // {
+                //     set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], 255, 0, 0);
+                // }
+                // else
                 {
                     set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], red, green, blue);
                 }
             }
         }
+        counter = (counter + 4) % (256 + 256 + 256);
+        brightness = (brightness + 8) % 256;
 
         // convert the colors to bit planes
         absolute_time_t start_time = get_absolute_time();
@@ -110,8 +111,7 @@ int main()
 
         printf("FPS %d; ", frame_rate);
         printf("unit tests %s; ", tests ? "passed" : "failed");
-        printf("R:%03d G:%03d  B:%03d; ", red, green, blue);
-        printf("colors_to_bitplanes: %lld us; ", time_color_to_bitplanes);
-        printf("waited DMA to finish %lld us\n", time_wait_for_DMA);
+        printf("colors_to_bitplanes: %06lld us; ", time_color_to_bitplanes);
+        printf("waited DMA to finish %06lld us\n", time_wait_for_DMA);
     }
 }
