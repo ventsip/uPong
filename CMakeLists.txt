@@ -1,17 +1,3 @@
-# == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
-if(WIN32)
-    set(USERHOME $ENV{USERPROFILE})
-else()
-    set(USERHOME $ENV{HOME})
-endif()
-set(sdkVersion 2.1.0)
-set(toolchainVersion 13_3_Rel1)
-set(picotoolVersion 2.1.0)
-set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
-if (EXISTS ${picoVscode})
-    include(${picoVscode})
-endif()
-# ====================================================================================
 # Generated Cmake Pico project file
 
 cmake_minimum_required(VERSION 3.13)
@@ -48,8 +34,7 @@ project(uPong C CXX ASM)
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
-
-add_executable(uPong src/uPong.c )
+add_executable(uPong src/uPong.c)
 
 pico_set_program_name(uPong "uPong")
 pico_set_program_version(uPong "0.1")
@@ -61,7 +46,6 @@ pico_generate_pio_header(uPong ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_usb(uPong 1)
 pico_enable_stdio_uart(uPong 0)
-
 
 # Add the standard library to the build
 target_link_libraries(uPong

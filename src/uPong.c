@@ -32,29 +32,31 @@ typedef uint8_t bit_plane_type; // must be wide enough to contain the number of 
 bit_plane_type led_strips_bitplanes[2][LEDS_PER_STRIP * BYTES_PER_LED * 8];
 uint8_t led_colors[NMB_STRIPS * LEDS_PER_STRIP * BYTES_PER_LED]; // color order is GRB (WS2812)
 
-void colors_to_bitplanes(int active_planes)
+void colors_to_bitplanes(
+    bit_plane_type *const bitplane,
+    const uint8_t *const colors,
+    const int nmb_strips,
+    const int leds_per_strip,
+    const int bytes_per_led)
 {
-    // clear the bit plane
-    memset(led_strips_bitplanes[active_planes], 0, sizeof(led_strips_bitplanes[active_planes]));
+    memset(bitplane, 0, leds_per_strip * bytes_per_led * 8);
 
-    // copy the led_colors to the bit plane
     int color_byte_offset = 0;
-    for (int y = 0; y < NMB_STRIPS; y++)
+    for (int y = 0; y < nmb_strips; y++)
     {
-        for (int x = 0; x < LEDS_PER_STRIP; x++)
+        for (int x = 0; x < leds_per_strip; x++)
         {
-            for (int c = 0; c < BYTES_PER_LED; c++, color_byte_offset++)
+            for (int c = 0; c < bytes_per_led; c++, color_byte_offset++)
             {
                 // iterate over color bits
                 for (int i = 0; i < 8; i++)
                 {
-                    // set the bit in the bit plane
-                    int bit = (led_colors[color_byte_offset] >> (7 - i)) & 1;
-
-                    int bitplanes_byte_offset = (x * BYTES_PER_LED + c) * 8 + i;
-
-                    // set the bit in the bit plane
-                    led_strips_bitplanes[active_planes][bitplanes_byte_offset] |= bit << y;
+                    const uint8_t bit = (colors[color_byte_offset] >> (7 - i)) & 1;
+                    if (bit)
+                    {
+                        const int bitplanes_byte_offset = (x * bytes_per_led + c) * 8 + i;
+                        bitplane[bitplanes_byte_offset] |= (1 << y);
+                    }
                 }
             }
         }
@@ -188,7 +190,7 @@ int main()
         }
 
         // convert the colors to bit planes
-        colors_to_bitplanes(active_planes);
+        colors_to_bitplanes(led_strips_bitplanes[active_planes], led_colors, NMB_STRIPS, LEDS_PER_STRIP, BYTES_PER_LED);
 
         sem_acquire_blocking(&reset_delay_complete_sem);
         output_colors_dma(active_planes);
