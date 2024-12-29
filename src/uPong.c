@@ -32,7 +32,7 @@ typedef uint8_t bit_plane_type; // must be wide enough to contain the number of 
 bit_plane_type led_strips_bitplanes[2][LEDS_PER_STRIP * BYTES_PER_LED * 8];
 uint8_t led_colors[NMB_STRIPS * LEDS_PER_STRIP * BYTES_PER_LED]; // color order is GRB (WS2812)
 
-void colors_to_bitplanes(
+inline void colors_to_bitplanes(
     bit_plane_type *const bitplane,
     const uint8_t *const colors,
     const int nmb_strips,
@@ -44,18 +44,19 @@ void colors_to_bitplanes(
     int color_byte_offset = 0;
     for (int y = 0; y < nmb_strips; y++)
     {
+        const int yth_bit = 1 << y;
+        int bit_plane_led_offset = 0;
         for (int x = 0; x < leds_per_strip; x++)
         {
-            for (int c = 0; c < bytes_per_led; c++, color_byte_offset++)
+            for (int c = 0; c < bytes_per_led; c++, color_byte_offset++, bit_plane_led_offset += 8)
             {
+                uint8_t color_byte = colors[color_byte_offset];
                 // iterate over color bits
-                for (int i = 0; i < 8; i++)
+                for (int i = 0; i < 8; i++, color_byte >>= 1)
                 {
-                    const uint8_t bit = (colors[color_byte_offset] >> (7 - i)) & 1;
-                    if (bit)
+                    if (color_byte & 1)
                     {
-                        const int bitplanes_byte_offset = (x * bytes_per_led + c) * 8 + i;
-                        bitplane[bitplanes_byte_offset] |= (1 << y);
+                        bitplane[bit_plane_led_offset + (7 - i)] |= yth_bit;
                     }
                 }
             }
@@ -190,28 +191,28 @@ int main()
     int brightness = 0;
     while (true)
     {
-        int red = (color >= 0 && color < 256) ? brightness : 0;
-        int green = (color >= 256 && color < 512) ? brightness : 0;
-        int blue = (color >= 512 && color < 768) ? brightness : 0;
-        color = (color + 1) % 768;
-        brightness = (brightness + 1) % 256;
+        // int red = (color >= 0 && color < 256) ? brightness : 0;
+        // int green = (color >= 256 && color < 256 + 256) ? brightness : 0;
+        // int blue = (color >= 256 + 256 && color < 256 + 256 + 256) ? brightness : 0;
+        // color = (color + 1) % 256 + 256 + 256;
+        // brightness = (brightness + 1) % 256;
 
         for (int y = 0; y < NMB_STRIPS; y++)
         {
             for (int x = 0; x < LEDS_PER_STRIP; x++)
             {
-                if (x == 0 || x == 3)
+                if (x == y)
                 {
-                    set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], 127, 127, 127);
+                    set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], 255, 0, 0);
                 }
                 else
                 {
-                    set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], red, green, blue);
+                    set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], 22, 22, 22);
                 }
             }
         }
         // print color
-        printf("Color: R:%d G:%d  B:%d\n", red, green, blue);
+        // printf("Color: R:%d G:%d  B:%d\n", red, green, blue);
 
         // convert the colors to bit planes
         absolute_time_t start_time = get_absolute_time();
