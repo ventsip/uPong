@@ -44,7 +44,7 @@ inline void colors_to_bitplanes(
     int color_byte_offset = 0;
     for (int y = 0; y < nmb_strips; y++)
     {
-        const int yth_bit = 1 << y;
+        const bit_plane_type yth_bit = 1 << y;
         int bit_plane_led_offset = 0;
         for (int x = 0; x < leds_per_strip; x++)
         {
