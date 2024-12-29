@@ -7,7 +7,7 @@
 .define public T3 4
 
 .wrap_target
-    out x, 32
+    out x, 8    // shift out 8 bits of data
     mov pins, !null [T1-1]
     mov pins, x     [T2-1]
     mov pins, null  [T3-2]
@@ -23,7 +23,7 @@ static inline void ws2812_parallel_program_init(PIO pio, uint sm, uint offset, u
     pio_sm_set_consecutive_pindirs(pio, sm, pin_base, pin_count, true);
 
     pio_sm_config c = ws2812_parallel_program_get_default_config(offset);
-    sm_config_set_out_shift(&c, true, true, 32);
+    sm_config_set_out_shift(&c, true, true, 8);
     sm_config_set_out_pins(&c, pin_base, pin_count);
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
 
