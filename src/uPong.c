@@ -9,13 +9,13 @@
 #include "blink.pio.h"
 #include "ws2812.pio.h"
 
+#define WS2812_RESET_US 100
 #define WS2812_PIN_BASE 2
-// Check the pin is compatible with the platform
 #if WS2812_PIN_BASE >= NUM_BANK0_GPIOS
 #error Attempting to use a pin>=32 on a platform that does not support it
 #endif
 
-#define LEDS_PER_STRIP (256 * 2)
+#define LEDS_PER_STRIP (16 * 16 * 2)
 #define NMB_STRIPS 3 // max 8 strips
 #if NMB_STRIPS > 8
 #error "NMB_STRIPS must be <= 8"
@@ -26,7 +26,7 @@ typedef uint8_t bit_plane_type; // must be wide enough to contain the number of 
 
 #define BYTES_PER_LED 3
 
-void colors_to_bitplanes_standard(
+inline void colors_to_bitplanes_standard(
     bit_plane_type *const bitplane,
     const uint8_t *const colors,
     const int nmb_strips,
@@ -42,7 +42,6 @@ void colors_to_bitplanes_standard(
         {
             for (int c = 0; c < bytes_per_led; c++, color_byte_offset++)
             {
-                // iterate over color bits
                 for (int i = 0; i < 8; i++)
                 {
                     const uint8_t bit = (colors[color_byte_offset] >> (7 - i)) & 1;
@@ -81,7 +80,6 @@ inline void colors_to_bitplanes(
             for (int c = 0; c < bytes_per_led; c++, color_byte_offset++, bit_plane_led_offset += 8)
             {
                 uint8_t color_byte = colors[color_byte_offset];
-                // iterate over color bits
                 bit_plane_type *bp = bitplane + bit_plane_led_offset + 7;
                 for (int i = 0; i < 8; i++, color_byte >>= 1, bp--)
                 {
@@ -109,23 +107,19 @@ void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
 
 // bit plane content dma channel
 #define DMA_CHANNEL 0
-// chain channel for configuring main dma channel to output from disjoint 8 word fragments of memory
-#define DMA_CB_CHANNEL 1
-
 #define DMA_CHANNEL_MASK (1u << DMA_CHANNEL)
-#define DMA_CB_CHANNEL_MASK (1u << DMA_CB_CHANNEL)
-#define DMA_CHANNELS_MASK (DMA_CHANNEL_MASK | DMA_CB_CHANNEL_MASK)
+#define DMA_CHANNELS_MASK (DMA_CHANNEL_MASK)
 
 // posted when it is safe to output a new set of values
-static struct semaphore reset_delay_complete_sem;
+static struct semaphore ws2812_trasmitting_sem;
 
 // alarm handle for handling delay
-alarm_id_t reset_delay_alarm_id;
+alarm_id_t ws2812_reset_alarm_id;
 
-int64_t reset_delay_complete(__unused alarm_id_t id, __unused void *user_data)
+int64_t ws2812_reset_completed(__unused alarm_id_t id, __unused void *user_data)
 {
-    reset_delay_alarm_id = 0;
-    sem_release(&reset_delay_complete_sem);
+    ws2812_reset_alarm_id = 0;
+    sem_release(&ws2812_trasmitting_sem);
     // no repeat
     return 0;
 }
@@ -137,11 +131,11 @@ void __isr dma_complete_handler()
         // clear IRQ
         dma_hw->ints0 = DMA_CHANNEL_MASK;
         // when the dma is complete we start the reset delay timer
-        if (reset_delay_alarm_id)
+        if (ws2812_reset_alarm_id)
         {
-            cancel_alarm(reset_delay_alarm_id);
+            cancel_alarm(ws2812_reset_alarm_id);
         }
-        reset_delay_alarm_id = add_alarm_in_us(400, reset_delay_complete, NULL, true);
+        ws2812_reset_alarm_id = add_alarm_in_us(WS2812_RESET_US, ws2812_reset_completed, NULL, true);
     }
 }
 
@@ -149,28 +143,15 @@ void dma_init(PIO pio, uint sm)
 {
     dma_claim_mask(DMA_CHANNELS_MASK);
 
-    // main DMA channel outputs 8 word fragments, and then chains back to the chain channel
     dma_channel_config channel_config = dma_channel_get_default_config(DMA_CHANNEL);
     channel_config_set_dreq(&channel_config, pio_get_dreq(pio, sm, true));
     channel_config_set_transfer_data_size(&channel_config, DMA_SIZE_8);
-    channel_config_set_chain_to(&channel_config, DMA_CB_CHANNEL);
-    channel_config_set_irq_quiet(&channel_config, true);
     dma_channel_configure(
         DMA_CHANNEL,
         &channel_config,
         &pio->txf[sm],
-        NULL, // set by chain
+        NULL, // set in output_colors_dma
         LEDS_PER_STRIP * BYTES_PER_LED * 8,
-        false);
-
-    // chain channel sends single word pointer to start of fragment each time
-    dma_channel_config chain_config = dma_channel_get_default_config(DMA_CB_CHANNEL);
-    dma_channel_configure(
-        DMA_CB_CHANNEL,
-        &chain_config,
-        &dma_channel_hw_addr(DMA_CHANNEL)->al3_read_addr_trig, // ch DMA config (target "ring" buffer size 4) - this is (read_addr trigger)
-        NULL,                                                  // set later
-        1,
         false);
 
     irq_set_exclusive_handler(DMA_IRQ_0, dma_complete_handler);
@@ -178,12 +159,9 @@ void dma_init(PIO pio, uint sm)
     irq_set_enabled(DMA_IRQ_0, true);
 }
 
-bit_plane_type *dma_buffer_ptr[2];
 void output_colors_dma(int active_planes)
 {
-    dma_buffer_ptr[0] = led_strips_bitplanes[active_planes];
-    dma_buffer_ptr[1] = 0;
-    dma_channel_hw_addr(DMA_CB_CHANNEL)->al3_read_addr_trig = (uintptr_t)dma_buffer_ptr;
+    dma_channel_hw_addr(DMA_CHANNEL)->al3_read_addr_trig = (uintptr_t)(led_strips_bitplanes + active_planes);
 }
 
 void set_color(uint8_t *colors, uint8_t r, uint8_t g, uint8_t b)
@@ -236,7 +214,7 @@ int main()
     hard_assert(success);
 
     ws2812_parallel_program_init(pio, sm, offset, WS2812_PIN_BASE, NMB_STRIPS, 800000);
-    sem_init(&reset_delay_complete_sem, 1, 1); // initially posted so we don't block first time
+    sem_init(&ws2812_trasmitting_sem, 1, 1); // initially posted so we don't block first time
     dma_init(pio, sm);
 
     int frame_buffer_index = 0;
@@ -282,13 +260,11 @@ int main()
         // convert the colors to bit planes
         absolute_time_t start_time = get_absolute_time();
         colors_to_bitplanes(led_strips_bitplanes[frame_buffer_index], led_colors, NMB_STRIPS, LEDS_PER_STRIP, BYTES_PER_LED);
-        absolute_time_t end_time = get_absolute_time();
-        int64_t time_color_to_bitplanes = absolute_time_diff_us(start_time, end_time);
+        int64_t time_color_to_bitplanes = absolute_time_diff_us(start_time, get_absolute_time());
 
         start_time = get_absolute_time();
-        sem_acquire_blocking(&reset_delay_complete_sem);
-        end_time = get_absolute_time();
-        int64_t time_wait_for_DMA = absolute_time_diff_us(start_time, end_time);
+        sem_acquire_blocking(&ws2812_trasmitting_sem);
+        int64_t time_wait_for_DMA = absolute_time_diff_us(start_time, get_absolute_time());
 
         output_colors_dma(frame_buffer_index);
         // toggle active planes
