@@ -52,11 +52,12 @@ inline void colors_to_bitplanes(
             {
                 uint8_t color_byte = colors[color_byte_offset];
                 // iterate over color bits
-                for (int i = 0; i < 8; i++, color_byte >>= 1)
+                bit_plane_type *bp = bitplane + bit_plane_led_offset + 7;
+                for (int i = 0; i < 8; i++, color_byte >>= 1, bp--)
                 {
                     if (color_byte & 1)
                     {
-                        bitplane[bit_plane_led_offset + (7 - i)] |= yth_bit;
+                        *bp |= yth_bit;
                     }
                 }
             }
