@@ -38,6 +38,46 @@ int unit_tests()
     return ret == 0;
 }
 
+void pattern1(int counter, int brightness)
+{
+    for (int y = 0; y < NMB_STRIPS; y++)
+    {
+        for (int x = 0; x < LEDS_PER_STRIP; x++)
+        {
+            int color = (counter + x * 64) % (256 + 256 + 256);
+            int red = (color >= 0 && color < 256) ? brightness : 0;
+            int green = (color >= 256 && color < 256 + 256) ? brightness : 0;
+            int blue = (color >= 256 + 256 && color < 256 + 256 + 256) ? brightness : 0;
+
+            // if (x == y)
+            // {
+            //     set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], 255, 0, 0);
+            // }
+            // else
+            {
+                set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], red, green, blue);
+            }
+        }
+    }
+}
+
+void pattern2(int counter, int brightness)
+{
+    int led = counter % LEDS_PER_STRIP;
+
+    for (int strip = 0; strip < NMB_STRIPS; strip++)
+    {
+        int red = (strip == 0) ? brightness : 0;
+        int green = (strip == 1) ? brightness : 0;
+        int blue = (strip == 2) ? brightness : 0;
+
+        for (int i = 1; i <= 8; ++i)
+        {
+            set_color(&led_colors[(strip * LEDS_PER_STRIP + ((led + LEDS_PER_STRIP - i) % LEDS_PER_STRIP)) * BYTES_PER_LED], red / i, green / i, blue / i);
+        }
+    }
+}
+
 int main()
 {
     stdio_init_all();
@@ -74,27 +114,13 @@ int main()
             last_time = current_time;
         }
 
-        for (int y = 0; y < NMB_STRIPS; y++)
-        {
-            for (int x = 0; x < LEDS_PER_STRIP; x++)
-            {
-                int color = (counter + x * 64 + x * y * 64) % (256 + 256 + 256);
-                int red = (color >= 0 && color < 256) ? brightness : 0;
-                int green = (color >= 256 && color < 256 + 256) ? brightness : 0;
-                int blue = (color >= 256 + 256 && color < 256 + 256 + 256) ? brightness : 0;
+        // clear the led colors
+        memset(led_colors, 0, sizeof(led_colors));
 
-                // if (x == y)
-                // {
-                //     set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], 255, 0, 0);
-                // }
-                // else
-                {
-                    set_color(&led_colors[(y * LEDS_PER_STRIP + x) * BYTES_PER_LED], red, green, blue);
-                }
-            }
-        }
-        counter = (counter + 8) % (256 + 256 + 256);
-        brightness = (brightness + 8) % 64;
+        // pattern1(counter, brightness);
+        pattern2(counter, brightness);
+        counter++;
+        brightness = 64; // (brightness + 8) % 64;
 
         // convert the colors to bit planes
         absolute_time_t start_time = get_absolute_time();

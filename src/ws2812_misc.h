@@ -41,9 +41,9 @@ static inline void colors_to_bitplanes_standard(
     memset(bitplane, 0, leds_per_strip * bytes_per_led * 8);
 
     int color_byte_offset = 0;
-    for (int y = 0; y < nmb_strips; y++)
+    for (int strip = 0; strip < nmb_strips; strip++)
     {
-        for (int x = 0; x < leds_per_strip; x++)
+        for (int led = 0; led < leds_per_strip; led++)
         {
             for (int c = 0; c < bytes_per_led; c++, color_byte_offset++)
             {
@@ -52,8 +52,8 @@ static inline void colors_to_bitplanes_standard(
                     const uint8_t bit = (colors[color_byte_offset] >> (7 - i)) & 1;
                     if (bit)
                     {
-                        const int bitplanes_byte_offset = (x * bytes_per_led + c) * 8 + i;
-                        bitplane[bitplanes_byte_offset] |= (1 << y);
+                        const int bitplanes_byte_offset = (led * bytes_per_led + c) * 8 + i;
+                        bitplane[bitplanes_byte_offset] |= (1 << strip);
                     }
                 }
             }
@@ -71,11 +71,11 @@ static inline void colors_to_bitplanes(
     memset(bitplane, 0, leds_per_strip * bytes_per_led * 8);
 
     int color_byte_offset = 0;
-    for (int y = 0; y < nmb_strips; y++)
+    for (int strip = 0; strip < nmb_strips; strip++)
     {
-        const bit_plane_type yth_bit = 1 << y;
+        const bit_plane_type strip_bit = 1 << strip;
         int bit_plane_led_offset = 0;
-        for (int x = 0; x < leds_per_strip; x++)
+        for (int led = 0; led < leds_per_strip; led++)
         {
             for (int c = 0; c < bytes_per_led; c++, color_byte_offset++, bit_plane_led_offset += 8)
             {
@@ -85,7 +85,7 @@ static inline void colors_to_bitplanes(
                 {
                     if (color_byte & 1)
                     {
-                        *bp |= yth_bit;
+                        *bp |= strip_bit;
                     }
                 }
             }
