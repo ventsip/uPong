@@ -53,10 +53,10 @@ static void screen_to_led_colors()
     for (int y = 0, inv_y = SCREEN_HEIGHT - 1; y < SCREEN_HEIGHT; y++, inv_y--)
     {
         uint8_t *pixel = screen + y * SCREEN_WIDTH * BYTES_PER_PIXEL;
+        uint8_t *led = led_colors + inv_y * LED_MATRIX_WIDTH * BYTES_PER_PIXEL;
 
-        for (int i = 0; i < 3; ++i, pixel += LED_MATRIX_WIDTH * BYTES_PER_PIXEL)
+        for (int i = 0; i < 3; ++i, pixel += LED_MATRIX_WIDTH * BYTES_PER_PIXEL, led += LEDS_PER_STRIP * BYTES_PER_LED)
         {
-            uint8_t *led = led_colors + inv_y * LED_MATRIX_WIDTH * BYTES_PER_PIXEL + i * LEDS_PER_STRIP * BYTES_PER_LED;
             if (inv_y & 1)
             {
                 reverse_copy_pixels_to_led_colors(led, pixel, LED_MATRIX_WIDTH);
