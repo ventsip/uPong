@@ -2,20 +2,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "blink.pio.h"
 #include "screen.h"
 #include "ws2812_misc.h"
 
-void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq)
+// Initialize the GPIO for the LED
+void status_led_init(void)
 {
-    blink_program_init(pio, sm, offset, pin);
-    pio_sm_set_enabled(pio, sm, true);
+#ifdef PICO_DEFAULT_LED_PIN
+    // A device like Pico that uses a GPIO for the LED will define PICO_DEFAULT_LED_PIN
+    // so we can use normal GPIO functionality to turn the led on and off
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+#endif
+}
 
-    printf("Blinking pin %d at %d Hz\n", pin, freq);
-
-    // PIO counter program takes 3 more cycles in total than we pass as
-    // input (wait for n + 1; mov; jmp)
-    pio->txf[sm] = (clock_get_hz(clk_sys) / (2 * freq)) - 3;
+// Turn the LED on or off
+void set_status_led(bool led_on)
+{
+#if defined(PICO_DEFAULT_LED_PIN)
+    // Just set the GPIO on or off
+    gpio_put(PICO_DEFAULT_LED_PIN, led_on);
+#endif
 }
 
 int unit_tests()
@@ -91,17 +98,7 @@ void screen_pattern_1(int counter, int brightness)
 int main()
 {
     stdio_init_all();
-
-    int tests = unit_tests();
-
-    PIO pio;
-    uint sm;
-    uint offset;
-    bool success;
-    // PIO Blinking LED
-    success = pio_claim_free_sm_and_add_program_for_gpio_range(&blink_program, &pio, &sm, &offset, PICO_DEFAULT_LED_PIN, 1, true);
-    hard_assert(success);
-    blink_pin_forever(pio, sm, offset, PICO_DEFAULT_LED_PIN, 2);
+    status_led_init();
 
     init_WS2812();
 
@@ -116,6 +113,7 @@ int main()
     {
         // calculate fps
         frame++;
+        set_status_led(frame & 1);
 
         absolute_time_t current_time = get_absolute_time();
         if (absolute_time_diff_us(last_time, current_time) >= 1000000)
@@ -149,7 +147,6 @@ int main()
         frame_buffer_index ^= 1;
 
         printf("FPS %d; ", frame_rate);
-        printf("unit tests %s; ", tests ? "passed" : "failed");
         printf("screen_to_led_colors: %06lld us; ", time_screen_to_led_colors);
         printf("led_colors_to_bitplanes: %06lld us; ", time_led_colors_to_bitplanes);
         printf("waited DMA to finish %06lld us\n", time_wait_for_DMA);
