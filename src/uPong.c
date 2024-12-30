@@ -171,6 +171,16 @@ void screen_pattern_6(absolute_time_t current_time, int counter, int brightness,
     draw_3x5_number(frame_rate, SCREEN_WIDTH - digits * 4, 1, 0, 0, 0);
 }
 
+void screen_pattern_7(absolute_time_t current_time, int counter, int brightness)
+{
+    const int x0 = (counter / 4) % (SCREEN_WIDTH + 24) - 12;
+    const int y0 = (counter / 8) % (SCREEN_HEIGHT + 18) - 9;
+    // draw trasparent bulgarian flag 12x9
+    draw_transparent_rect(x0, y0, 12, 3, brightness, brightness, brightness, 128);
+    draw_transparent_rect(x0, y0 + 3, 12, 3, 0, 150 * brightness >> 8, 110 * brightness >> 8, 128);
+    draw_transparent_rect(x0, y0 + 6, 12, 3, 214 * brightness >> 8, 38 * brightness >> 8, 18 * brightness >> 8, 128);
+}
+
 int main()
 {
     stdio_init_all();
@@ -202,8 +212,8 @@ int main()
         screen_pattern_2(current_time, counter, brightness);
         screen_pattern_4(current_time, counter, brightness);
         screen_pattern_5(current_time, counter, brightness);
+        screen_pattern_7(current_time, counter, brightness);
         screen_pattern_6(current_time, counter, brightness, frame_rate);
-
         // convert the screen buffer to led colors
         start_time = get_absolute_time();
         screen_to_led_colors();
