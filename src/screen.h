@@ -1,6 +1,7 @@
 #pragma once
 #include <string.h>
 
+#include "fonts.h"
 #include "ws2812_defs.h"
 
 #define SCREEN_WIDTH (LED_MATRIX_WIDTH * 3)
@@ -18,7 +19,7 @@ static inline void clear_screen()
     memset(screen, 0, sizeof(screen));
 }
 
-static inline void set_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b)
+static inline void set_pixel(const int x, const int y, const uint8_t r, const uint8_t g, const uint8_t b)
 {
     if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
     {
@@ -29,7 +30,43 @@ static inline void set_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b)
     }
 }
 
-static void inline reverse_copy_pixels_to_led_colors(uint8_t *led_colors, const uint8_t *pixels, int n)
+static inline void draw_transparent_rect(int x, int y, int w, int h, const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t alpha)
+{
+    // fix cooridnates to be within the screen
+    if (x < 0)
+    {
+        w += x;
+        x = 0;
+    }
+    if (y < 0)
+    {
+        h += y;
+        y = 0;
+    }
+    if (x + w > SCREEN_WIDTH)
+    {
+        w = SCREEN_WIDTH - x;
+    }
+    if (y + h > SCREEN_HEIGHT)
+    {
+        h = SCREEN_HEIGHT - y;
+    }
+
+    for (int i = 0; i < h; i++)
+    {
+        for (int j = 0; j < w; j++)
+        {
+            uint8_t *p = screen + ((y + i) * SCREEN_WIDTH + x + j) * BYTES_PER_PIXEL;
+            *p = (*p * (255 - alpha) + g * alpha) >> 8;
+            p++;
+            *p = (*p * (255 - alpha) + r * alpha) >> 8;
+            p++;
+            *p = (*p * (255 - alpha) + b * alpha) >> 8;
+        }
+    }
+}
+
+static void inline reverse_copy_pixels_to_led_colors(uint8_t *led_colors, const uint8_t *pixels, const int n)
 {
     uint8_t *led = led_colors;
     const uint8_t *pixel = pixels + (n - 1) * BYTES_PER_PIXEL;
@@ -67,4 +104,46 @@ static void screen_to_led_colors()
             }
         }
     }
+}
+
+//
+
+// draw a 3x5 digit at the specified position
+// x and y are considered to be the top left corner of the digit
+void draw_3x5_digit(const char d, const int x, int y, const uint8_t r, const uint8_t g, const uint8_t b)
+{
+    const uint8_t *digit = (d < '0' || d > '9') ? font_3x5_missing_char : font_3x5_digits[d - '0'];
+
+    for (int row = 0; row < 5; row++, y++)
+    {
+        const uint8_t line = digit[row];
+
+        if (line & 0b100)
+        {
+            set_pixel(x, y, r, g, b);
+        }
+        if (line & 0b010)
+        {
+            set_pixel(x + 1, y, r, g, b);
+        }
+        if (line & 0b001)
+        {
+            set_pixel(x + 2, y, r, g, b);
+        }
+    }
+}
+
+void draw_3x5_number_as_string(const char *str, const int x, const int y, const uint8_t r, const uint8_t g, const uint8_t b)
+{
+    for (int i = 0; str[i] != '\0'; i++)
+    {
+        draw_3x5_digit(str[i], x + i * 4, y, r, g, b);
+    }
+}
+
+void draw_3x5_number(const uint number, const int x, const int y, const uint8_t r, const uint8_t g, const uint8_t b)
+{
+    char buffer[16];
+    snprintf(buffer, sizeof(buffer), "%u", number);
+    draw_3x5_number_as_string(buffer, x, y, r, g, b);
 }

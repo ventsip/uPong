@@ -88,11 +88,72 @@ void led_pattern_2(int counter, int brightness)
     }
 }
 
-void screen_pattern_1(int counter, int brightness)
+void screen_pattern_1(absolute_time_t current_time, int counter, int brightness)
 {
-    clear_screen();
-
     set_pixel(counter % SCREEN_WIDTH, (counter / SCREEN_WIDTH) % SCREEN_HEIGHT, 0, brightness, 0);
+}
+
+void screen_pattern_2(absolute_time_t current_time, int counter, int brightness)
+{
+    // set random pixels
+    for (int i = 0; i < 60; i++)
+    {
+        int x = rand() % SCREEN_WIDTH;
+        int y = rand() % SCREEN_HEIGHT;
+        set_pixel(x, y, rand() % brightness, rand() % brightness, rand() % brightness);
+    }
+}
+
+void screen_pattern_3(absolute_time_t current_time, int counter, int brightness)
+{
+    int x0 = SCREEN_WIDTH / 2;
+    int y0 = SCREEN_HEIGHT / 2;
+    int radius = (counter / 2) % (SCREEN_WIDTH * 2);
+
+    for (int y = 0; y < SCREEN_HEIGHT; y++)
+    {
+        for (int x = 0; x < SCREEN_WIDTH; x++)
+        {
+            int dx = x - x0;
+            int dy = y - y0;
+            if (dx * dx + dy * dy <= radius * radius)
+            {
+                set_pixel(x, y, brightness * (dx * dx + dy * dy) / (radius * radius), 0, 0);
+            }
+        }
+    }
+}
+
+void screen_pattern_4(absolute_time_t current_time, int counter, int brightness)
+{
+    // blink draw green retangle (3x5) every second
+    if (to_us_since_boot(current_time) / 500000 % 2 == 0)
+    {
+        for (int y = 0; y < 5; y++)
+        {
+            for (int x = 0; x < 3; x++)
+            {
+                set_pixel(x + 1, y + 1, 0, brightness, 0);
+            }
+        }
+    }
+}
+
+void screen_pattern_5(absolute_time_t current_time, int counter, int brightness)
+{
+    uint n = to_us_since_boot(current_time) / 1000;
+
+    // get number of digits in n
+    int digits = 0;
+    for (uint i = n; i > 0; i /= 10)
+    {
+        digits++;
+    }
+
+    // draw transparent rectangle under the number
+    draw_transparent_rect(0, SCREEN_HEIGHT - 7, digits * 4 + 1, 7, 0, 0, 0, 200);
+
+    draw_3x5_number(n, 1, SCREEN_HEIGHT - 6, 0, brightness, 0);
 }
 
 int main()
@@ -104,7 +165,7 @@ int main()
 
     int frame_buffer_index = 0;
     int counter = 0;
-    int brightness = 64;
+    int brightness = 32;
     int frame = 0;
     int frame_rate = 0;
     absolute_time_t last_time = {0};
@@ -123,15 +184,16 @@ int main()
             last_time = current_time;
         }
 
-        screen_pattern_1(counter, brightness);
+        clear_screen();
+        screen_pattern_3(current_time, counter, brightness);
+        screen_pattern_2(current_time, counter, brightness);
+        screen_pattern_4(current_time, counter, brightness);
+        screen_pattern_5(current_time, counter, brightness);
 
         // convert the screen buffer to led colors
         start_time = get_absolute_time();
         screen_to_led_colors();
         int64_t time_screen_to_led_colors = absolute_time_diff_us(start_time, get_absolute_time());
-
-        // led_pattern_1(counter, brightness);
-        //       led_pattern_2(counter, brightness);
 
         // convert the colors to bit planes
         start_time = get_absolute_time();
