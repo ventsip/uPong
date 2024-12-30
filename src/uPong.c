@@ -172,8 +172,6 @@ int main()
     absolute_time_t start_time = {0};
     while (true)
     {
-        // calculate fps
-        frame++;
         set_status_led(frame & 1);
 
         absolute_time_t current_time = get_absolute_time();
@@ -214,5 +212,6 @@ int main()
         printf("waited DMA to finish %06lld us\n", time_wait_for_DMA);
 
         counter++;
+        frame++;
     }
 }

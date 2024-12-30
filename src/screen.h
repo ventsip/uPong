@@ -51,17 +51,28 @@ static inline void draw_transparent_rect(int x, int y, int w, int h, const uint8
     {
         h = SCREEN_HEIGHT - y;
     }
+    if (w <= 0 || h <= 0)
+    {
+        return;
+    }
+
+    const uint16_t r_scaled = r * alpha;
+    const uint16_t g_scaled = g * alpha;
+    const uint16_t b_scaled = b * alpha;
 
     for (int i = 0; i < h; i++)
     {
+        const uint8_t anti_alpha = 255 - alpha;
+        uint8_t *p = screen + ((y + i) * SCREEN_WIDTH + x) * BYTES_PER_PIXEL;
+
         for (int j = 0; j < w; j++)
         {
-            uint8_t *p = screen + ((y + i) * SCREEN_WIDTH + x + j) * BYTES_PER_PIXEL;
-            *p = (*p * (255 - alpha) + g * alpha) >> 8;
+            *p = (*p * anti_alpha + g_scaled) >> 8;
             p++;
-            *p = (*p * (255 - alpha) + r * alpha) >> 8;
+            *p = (*p * anti_alpha + r_scaled) >> 8;
             p++;
-            *p = (*p * (255 - alpha) + b * alpha) >> 8;
+            *p = (*p * anti_alpha + b_scaled) >> 8;
+            p++;
         }
     }
 }
