@@ -24,13 +24,6 @@ bool init_WS2812()
     return success;
 }
 
-static inline void set_color(uint8_t *colors, uint8_t r, uint8_t g, uint8_t b)
-{
-    colors[0] = g;
-    colors[1] = r;
-    colors[2] = b;
-}
-
 static inline void colors_to_bitplanes_standard(
     bit_plane_type *const bitplane,
     const uint8_t *const colors,
@@ -61,7 +54,7 @@ static inline void colors_to_bitplanes_standard(
     }
 }
 
-static inline void colors_to_bitplanes(
+static inline void led_colors_to_bitplanes(
     bit_plane_type *const bitplane,
     const uint8_t *const colors,
     const int nmb_strips,
