@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "screen.h"
+#include "screen_misc.h"
 #include "ws2812_misc.h"
 
 // Initialize the GPIO for the LED
@@ -175,7 +175,7 @@ void screen_pattern_7(absolute_time_t current_time, int counter, int brightness)
 {
     const int x0 = (counter / 4) % (SCREEN_WIDTH + 24) - 12;
     const int y0 = (counter / 8) % (SCREEN_HEIGHT + 18) - 9;
-    // draw trasparent bulgarian flag 12x9
+    // draw transparent bulgarian flag 12x9
     draw_transparent_rect(x0, y0, 12, 3, brightness, brightness, brightness, 128);
     draw_transparent_rect(x0, y0 + 3, 12, 3, 0, 150 * brightness >> 8, 110 * brightness >> 8, 128);
     draw_transparent_rect(x0, y0 + 6, 12, 3, 214 * brightness >> 8, 38 * brightness >> 8, 18 * brightness >> 8, 128);
@@ -186,7 +186,8 @@ int main()
     stdio_init_all();
     status_led_init();
 
-    init_WS2812();
+    WS2812_init();
+    screen_init();
 
     int frame_buffer_index = 0;
     int counter = 0;
@@ -214,6 +215,7 @@ int main()
         screen_pattern_5(current_time, counter, brightness);
         screen_pattern_7(current_time, counter, brightness);
         screen_pattern_6(current_time, counter, brightness, frame_rate);
+
         // convert the screen buffer to led colors
         start_time = get_absolute_time();
         screen_to_led_colors();
@@ -225,7 +227,7 @@ int main()
         int64_t time_led_colors_to_bitplanes = absolute_time_diff_us(start_time, get_absolute_time());
 
         start_time = get_absolute_time();
-        sem_acquire_blocking(&ws2812_trasmitting_sem);
+        sem_acquire_blocking(&ws2812_transmitting_sem);
         int64_t time_wait_for_DMA = absolute_time_diff_us(start_time, get_absolute_time());
 
         output_colors_dma(frame_buffer_index);

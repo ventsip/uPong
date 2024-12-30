@@ -6,7 +6,7 @@
 #include "ws2812_defs.h"
 #include "ws2812_dma.h"
 
-bool init_WS2812()
+bool WS2812_init()
 {
     PIO pio;
     uint sm;
@@ -18,7 +18,7 @@ bool init_WS2812()
     success = pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_parallel_program, &pio, &sm, &offset, WS2812_PIN_BASE, NMB_STRIPS, true);
     hard_assert(success);
     ws2812_parallel_program_init(pio, sm, offset, WS2812_PIN_BASE, NMB_STRIPS, 800000);
-    sem_init(&ws2812_trasmitting_sem, 1, 1); // initially posted so we don't block first time
+    sem_init(&ws2812_transmitting_sem, 1, 1); // initially posted so we don't block first time
     ws2812_dma_init(pio, sm);
 
     return success;

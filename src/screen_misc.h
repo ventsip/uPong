@@ -1,22 +1,18 @@
 #pragma once
-#include <string.h>
 
 #include "fonts.h"
-#include "ws2812_defs.h"
-
-#define SCREEN_WIDTH (LED_MATRIX_WIDTH * 3)
-#define SCREEN_HEIGHT (LED_MATRIX_HEIGHT * 2)
-#define BYTES_PER_PIXEL 3 // 3 bytes per pixel, color order is GRB, following the WS2812 standard
-#if BYTES_PER_PIXEL != BYTES_PER_LED
-#error "BYTES_PER_PIXEL must be equal to BYTES_PER_LED"
-#endif
+#include "screen_defs.h"
 
 // screen buffer
 static uint8_t screen[SCREEN_WIDTH * SCREEN_HEIGHT * BYTES_PER_PIXEL];
-
 static inline void clear_screen()
 {
     memset(screen, 0, sizeof(screen));
+}
+
+void screen_init()
+{
+    clear_screen();
 }
 
 static inline void set_pixel(const int x, const int y, const uint8_t r, const uint8_t g, const uint8_t b)
@@ -32,7 +28,7 @@ static inline void set_pixel(const int x, const int y, const uint8_t r, const ui
 
 static inline void draw_transparent_rect(int x, int y, int w, int h, const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t alpha)
 {
-    // fix cooridnates to be within the screen
+    // fix coordinates to be within the screen
     if (x < 0)
     {
         w += x;
