@@ -156,6 +156,21 @@ void screen_pattern_5(absolute_time_t current_time, int counter, int brightness)
     draw_3x5_number(n, 1, SCREEN_HEIGHT - 6, 0, brightness, 0);
 }
 
+void screen_pattern_6(absolute_time_t current_time, int counter, int brightness, int frame_rate)
+{
+    // get number of digits in n
+    int digits = 0;
+    for (uint i = frame_rate; i > 0; i /= 10)
+    {
+        digits++;
+    }
+
+    // draw transparent rectangle under the number
+    draw_transparent_rect(SCREEN_WIDTH - digits * 4 - 1, 0, digits * 4 + 1, 7, brightness, brightness, brightness, 128);
+
+    draw_3x5_number(frame_rate, SCREEN_WIDTH - digits * 4, 1, 0, 0, 0);
+}
+
 int main()
 {
     stdio_init_all();
@@ -187,6 +202,7 @@ int main()
         screen_pattern_2(current_time, counter, brightness);
         screen_pattern_4(current_time, counter, brightness);
         screen_pattern_5(current_time, counter, brightness);
+        screen_pattern_6(current_time, counter, brightness, frame_rate);
 
         // convert the screen buffer to led colors
         start_time = get_absolute_time();

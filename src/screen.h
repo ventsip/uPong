@@ -117,8 +117,6 @@ static void screen_to_led_colors()
     }
 }
 
-//
-
 // draw a 3x5 digit at the specified position
 // x and y are considered to be the top left corner of the digit
 void draw_3x5_digit(const char d, const int x, int y, const uint8_t r, const uint8_t g, const uint8_t b)
