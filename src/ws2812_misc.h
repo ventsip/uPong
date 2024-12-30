@@ -19,7 +19,7 @@ bool init_WS2812()
     hard_assert(success);
     ws2812_parallel_program_init(pio, sm, offset, WS2812_PIN_BASE, NMB_STRIPS, 800000);
     sem_init(&ws2812_trasmitting_sem, 1, 1); // initially posted so we don't block first time
-    dma_init(pio, sm);
+    ws2812_dma_init(pio, sm);
 
     return success;
 }
