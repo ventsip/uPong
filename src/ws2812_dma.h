@@ -12,7 +12,7 @@
 static struct semaphore ws2812_trasmitting_sem;
 
 // alarm handle for handling the ws2812 reset delay
-alarm_id_t ws2812_reset_alarm_id;
+static alarm_id_t ws2812_reset_alarm_id;
 
 int64_t ws2812_reset_completed(__unused alarm_id_t id, __unused void *user_data)
 {

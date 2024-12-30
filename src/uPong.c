@@ -78,7 +78,7 @@ int main()
         {
             for (int x = 0; x < LEDS_PER_STRIP; x++)
             {
-                int color = (counter + x + y * 2) % (256 + 256 + 256);
+                int color = (counter + x * 64 + x * y * 64) % (256 + 256 + 256);
                 int red = (color >= 0 && color < 256) ? brightness : 0;
                 int green = (color >= 256 && color < 256 + 256) ? brightness : 0;
                 int blue = (color >= 256 + 256 && color < 256 + 256 + 256) ? brightness : 0;
@@ -93,8 +93,8 @@ int main()
                 }
             }
         }
-        counter = (counter + 4) % (256 + 256 + 256);
-        brightness = (brightness + 8) % 256;
+        counter = (counter + 8) % (256 + 256 + 256);
+        brightness = (brightness + 8) % 64;
 
         // convert the colors to bit planes
         absolute_time_t start_time = get_absolute_time();
