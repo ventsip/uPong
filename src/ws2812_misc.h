@@ -26,16 +26,14 @@ bool WS2812_init()
 
 static inline void led_colors_to_bitplanes_standard(
     led_bit_planes_t *const bitplane,
-    const led_color_t *const colors,
-    const int nmb_strips,
-    const int leds_per_strip)
+    const led_color_t *const colors)
 {
-    memset(bitplane, 0, leds_per_strip * sizeof(led_bit_planes_t));
+    memset(bitplane, 0, LEDS_PER_STRIP * sizeof(led_bit_planes_t));
 
     int color_byte_offset = 0;
-    for (int strip = 0; strip < nmb_strips; strip++)
+    for (int strip = 0; strip < NMB_STRIPS; strip++)
     {
-        for (int led = 0; led < leds_per_strip; led++, color_byte_offset += sizeof(led_color_t) - BYTES_PER_WS2812_LED)
+        for (int led = 0; led < LEDS_PER_STRIP; led++, color_byte_offset += sizeof(led_color_t) - BYTES_PER_WS2812_LED)
         {
             for (int c = 0; c < BYTES_PER_WS2812_LED; c++, color_byte_offset++)
             {
@@ -55,23 +53,22 @@ static inline void led_colors_to_bitplanes_standard(
 
 static inline void led_colors_to_bitplanes(
     led_bit_planes_t *const bitplane,
-    const led_color_t *const colors,
-    const int nmb_strips,
-    const int leds_per_strip)
+    const led_color_t *const colors)
 {
-    memset(bitplane, 0, leds_per_strip * sizeof(led_bit_planes_t));
+    memset(bitplane, 0, LEDS_PER_STRIP * sizeof(led_bit_planes_t));
 
-    uint8_t *color = (uint8_t *)colors;
-    for (int strip = 0; strip < nmb_strips; strip++)
+    const int color_step = sizeof(led_color_t) - BYTES_PER_WS2812_LED;
+
+    uint8_t const *color = (uint8_t const *)colors;
+    for (int strip = 0; strip < NMB_STRIPS; strip++)
     {
         const bit_plane_t strip_bit = 1 << strip;
-        int bit_plane_led_offset = 0;
-        for (int led = 0; led < leds_per_strip; led++, color += sizeof(led_color_t) - BYTES_PER_WS2812_LED)
+        bit_plane_t *bp = (bit_plane_t *)bitplane + 7;
+        for (int led = 0; led < LEDS_PER_STRIP; led++, color += color_step)
         {
-            for (int c = 0; c < BYTES_PER_WS2812_LED; c++, color++, bit_plane_led_offset += 8)
+            for (int c = 0; c < BYTES_PER_WS2812_LED; c++, color++, bp += 16)
             {
                 uint8_t color_byte = *color;
-                bit_plane_t *bp = (bit_plane_t *)bitplane + bit_plane_led_offset + 7;
                 for (int i = 0; i < 8; i++, color_byte >>= 1, bp--)
                 {
                     if (color_byte & 1)

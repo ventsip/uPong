@@ -27,22 +27,20 @@ void set_status_led(bool led_on)
 
 int unit_tests()
 {
-    const int nmb_strips = NMB_STRIPS, leds_per_strip = LEDS_PER_STRIP;
-
-    led_color_t colors[nmb_strips * leds_per_strip];
+    led_color_t colors[NMB_STRIPS * LEDS_PER_STRIP];
     // initialize colors with random values
-    for (int i = 0; i < nmb_strips * leds_per_strip; i++)
+    for (int i = 0; i < NMB_STRIPS * LEDS_PER_STRIP; i++)
     {
         colors[i] = (led_color_t){rand() % 256, rand() % 256, rand() % 256, rand() % 256};
     }
-    led_bit_planes_t bitplane_s[leds_per_strip];
-    led_colors_to_bitplanes_standard(bitplane_s, colors, nmb_strips, leds_per_strip);
+    led_bit_planes_t bitplane_s[LEDS_PER_STRIP];
+    led_colors_to_bitplanes_standard(bitplane_s, colors);
 
-    led_bit_planes_t bitplane[leds_per_strip];
-    led_colors_to_bitplanes(bitplane, colors, nmb_strips, leds_per_strip);
+    led_bit_planes_t bitplane[LEDS_PER_STRIP];
+    led_colors_to_bitplanes(bitplane, colors);
 
     // compare the two bit planes
-    int ret = memcmp(bitplane_s, bitplane, leds_per_strip);
+    int ret = memcmp(bitplane_s, bitplane, LEDS_PER_STRIP);
     return ret == 0;
 }
 
@@ -231,7 +229,7 @@ int main()
 
         // convert the colors to bit planes
         start_time = get_absolute_time();
-        led_colors_to_bitplanes(led_strips_bitstream[frame_buffer_index], (led_color_t *)led_colors, NMB_STRIPS, LEDS_PER_STRIP);
+        led_colors_to_bitplanes(led_strips_bitstream[frame_buffer_index], (led_color_t *)led_colors);
         int64_t time_led_colors_to_bitplanes = absolute_time_diff_us(start_time, get_absolute_time());
 
         start_time = get_absolute_time();
