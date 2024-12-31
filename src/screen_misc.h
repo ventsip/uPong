@@ -20,9 +20,9 @@ void screen_init()
 
     scr_dma_channel = dma_claim_unused_channel(true);
 
-    const bool word_multiple = (sizeof(led_color_t) * LED_MATRIX_WIDTH) % 4 == 0;
-    const int transfer_size = word_multiple ? DMA_SIZE_32 : DMA_SIZE_8;
-    const int transfer_count = word_multiple ? LED_MATRIX_WIDTH * sizeof(led_color_t) / 4 : LED_MATRIX_WIDTH * sizeof(led_color_t);
+    const auto word_multiple = (sizeof(led_color_t) * LED_MATRIX_WIDTH) % 4 == 0;
+    const dma_channel_transfer_size transfer_size = word_multiple ? DMA_SIZE_32 : DMA_SIZE_8;
+    const auto transfer_count = word_multiple ? LED_MATRIX_WIDTH * sizeof(led_color_t) / 4 : LED_MATRIX_WIDTH * sizeof(led_color_t);
 
     dma_channel_config channelConfig = dma_channel_get_default_config(scr_dma_channel);
     channel_config_set_transfer_data_size(&channelConfig, transfer_size);
