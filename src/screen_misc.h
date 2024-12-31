@@ -6,7 +6,7 @@
 #include "screen_defs.h"
 
 // screen buffer
-static uint8_t scr_screen[SCREEN_WIDTH * SCREEN_HEIGHT * BYTES_PER_PIXEL] __attribute__((aligned(4)));
+static led_color_t scr_screen[SCREEN_HEIGHT][SCREEN_WIDTH] __attribute__((aligned(4)));
 static inline void clear_screen()
 {
     memset(scr_screen, 0, sizeof(scr_screen));
@@ -19,12 +19,13 @@ void screen_init()
     clear_screen();
 
     scr_dma_channel = dma_claim_unused_channel(true);
+
+    const bool word_multiple = (sizeof(led_color_t) * LED_MATRIX_WIDTH) % 4 == 0;
+    const int transfer_size = word_multiple ? DMA_SIZE_32 : DMA_SIZE_8;
+    const int transfer_count = word_multiple ? LED_MATRIX_WIDTH * sizeof(led_color_t) / 4 : LED_MATRIX_WIDTH * sizeof(led_color_t);
+
     dma_channel_config channelConfig = dma_channel_get_default_config(scr_dma_channel);
-#if LED_MATRIX_WIDTH % 4 == 0
-    channel_config_set_transfer_data_size(&channelConfig, DMA_SIZE_32);
-#else
-    channel_config_set_transfer_data_size(&channelConfig, DMA_SIZE_8);
-#endif
+    channel_config_set_transfer_data_size(&channelConfig, transfer_size);
     channel_config_set_read_increment(&channelConfig, true);
     channel_config_set_write_increment(&channelConfig, true);
     dma_channel_configure(
@@ -32,26 +33,19 @@ void screen_init()
         &channelConfig,  // The configuration we just created
         NULL,            // The initial write address
         NULL,            // The initial read address
-#if LED_MATRIX_WIDTH % 4 == 0
-        LED_MATRIX_WIDTH * BYTES_PER_PIXEL / 4, // Number of transfers; in this case each is 4 bytes.
-#else
-        LED_MATRIX_WIDTH * BYTES_PER_PIXEL, // Number of transfers; in this case each is 1 byte.
-#endif
+        transfer_count,
         false); // Don't start immediately
 }
 
-static inline void set_pixel(const int x, const int y, const uint8_t r, const uint8_t g, const uint8_t b)
+static inline void set_pixel(const int x, const int y, const led_color_t c)
 {
     if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
     {
-        uint8_t *p = scr_screen + (y * SCREEN_WIDTH + x) * BYTES_PER_PIXEL;
-        *p++ = g;
-        *p++ = r;
-        *p = b;
+        scr_screen[y][x] = c;
     }
 }
 
-static inline void draw_transparent_rect(int x, int y, int w, int h, const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t alpha)
+static inline void draw_transparent_rect(int x, int y, int w, int h, const led_color_t c, const uint8_t alpha)
 {
     // fix coordinates to be within the screen
     if (x < 0)
@@ -77,37 +71,31 @@ static inline void draw_transparent_rect(int x, int y, int w, int h, const uint8
         return;
     }
 
-    const uint16_t r_scaled = r * alpha;
-    const uint16_t g_scaled = g * alpha;
-    const uint16_t b_scaled = b * alpha;
+    const uint16_t r_scaled = c.r * alpha;
+    const uint16_t g_scaled = c.g * alpha;
+    const uint16_t b_scaled = c.b * alpha;
 
     for (int i = 0; i < h; i++)
     {
         const uint8_t anti_alpha = 255 - alpha;
-        uint8_t *p = scr_screen + ((y + i) * SCREEN_WIDTH + x) * BYTES_PER_PIXEL;
+        led_color_t *p = &scr_screen[y + i][x];
 
         for (int j = 0; j < w; j++)
         {
-            *p = (*p * anti_alpha + g_scaled) >> 8;
-            p++;
-            *p = (*p * anti_alpha + r_scaled) >> 8;
-            p++;
-            *p = (*p * anti_alpha + b_scaled) >> 8;
+            p->g = (p->g * anti_alpha + g_scaled) >> 8;
+            p->r = (p->r * anti_alpha + r_scaled) >> 8;
+            p->b = (p->b * anti_alpha + b_scaled) >> 8;
             p++;
         }
     }
 }
 
-static void inline reverse_copy_pixels_to_led_colors(uint8_t *led_colors, const uint8_t *pixels, const int n)
+static void inline reverse_copy_pixels_to_led_colors(led_color_t *led_colors, const led_color_t *pixels, const int n)
 {
-    uint8_t *led = led_colors;
-    const uint8_t *pixel = pixels + (n - 1) * BYTES_PER_PIXEL;
-    for (int i = 0; i < n; i++, pixel -= 2 * BYTES_PER_PIXEL)
+    pixels = pixels + n - 1;
+    for (int i = 0; i < n; i++)
     {
-        *(uint16_t *)led = *(uint16_t *)pixel;
-        led += 2;
-        pixel += 2;
-        *led++ = *pixel++;
+        *led_colors++ = *pixels--;
     }
 }
 
@@ -122,10 +110,10 @@ static void screen_to_led_colors()
 {
     for (int y = 0, inv_y = SCREEN_HEIGHT - 1; y < SCREEN_HEIGHT; y++, inv_y--)
     {
-        uint8_t *pixel = scr_screen + y * SCREEN_WIDTH * BYTES_PER_PIXEL;
-        uint8_t *led = led_colors + inv_y * LED_MATRIX_WIDTH * BYTES_PER_PIXEL;
+        led_color_t *pixel = (led_color_t *)(scr_screen[y]);
+        led_color_t *led = (led_color_t *)led_colors + inv_y * LED_MATRIX_WIDTH;
 
-        for (int i = 0; i < 3; ++i, pixel += LED_MATRIX_WIDTH * BYTES_PER_PIXEL, led += LEDS_PER_STRIP * BYTES_PER_LED)
+        for (int strip = 0; strip < NMB_STRIPS; ++strip, pixel += LED_MATRIX_WIDTH, led += LEDS_PER_STRIP)
         {
             if (inv_y & 1)
             {
@@ -134,10 +122,8 @@ static void screen_to_led_colors()
             else
             {
                 dma_channel_wait_for_finish_blocking(scr_dma_channel);
-                //   configure the DMA channel with pixel as source and led as destination address
                 dma_hw->ch[scr_dma_channel].al2_read_addr = (uint32_t)pixel;
                 dma_hw->ch[scr_dma_channel].al2_write_addr_trig = (uint32_t)led;
-                // memcpy(led, pixel, LED_MATRIX_WIDTH * BYTES_PER_PIXEL);
             }
         }
     }
@@ -145,7 +131,7 @@ static void screen_to_led_colors()
 
 // draw a 3x5 digit at the specified position
 // x and y are considered to be the top left corner of the digit
-void draw_3x5_digit(const char d, const int x, int y, const uint8_t r, const uint8_t g, const uint8_t b)
+void draw_3x5_digit(const char d, const int x, int y, const led_color_t c)
 {
     const uint8_t *digit = (d < '0' || d > '9') ? font_3x5_missing_char : font_3x5_digits[d - '0'];
 
@@ -155,30 +141,30 @@ void draw_3x5_digit(const char d, const int x, int y, const uint8_t r, const uin
 
         if (line & 0b100)
         {
-            set_pixel(x, y, r, g, b);
+            set_pixel(x, y, c);
         }
         if (line & 0b010)
         {
-            set_pixel(x + 1, y, r, g, b);
+            set_pixel(x + 1, y, c);
         }
         if (line & 0b001)
         {
-            set_pixel(x + 2, y, r, g, b);
+            set_pixel(x + 2, y, c);
         }
     }
 }
 
-void draw_3x5_number_as_string(const char *str, const int x, const int y, const uint8_t r, const uint8_t g, const uint8_t b)
+void draw_3x5_number_as_string(const char *str, const int x, const int y, const led_color_t c)
 {
     for (int i = 0; str[i] != '\0'; i++)
     {
-        draw_3x5_digit(str[i], x + i * 4, y, r, g, b);
+        draw_3x5_digit(str[i], x + i * 4, y, c);
     }
 }
 
-void draw_3x5_number(const uint number, const int x, const int y, const uint8_t r, const uint8_t g, const uint8_t b)
+void draw_3x5_number(const uint number, const int x, const int y, const led_color_t c)
 {
     char buffer[16];
     snprintf(buffer, sizeof(buffer), "%u", number);
-    draw_3x5_number_as_string(buffer, x, y, r, g, b);
+    draw_3x5_number_as_string(buffer, x, y, c);
 }

@@ -48,7 +48,7 @@ void ws2812_dma_init(PIO pio, uint sm)
         &channel_config,
         &pio->txf[sm],
         NULL, // set in output_colors_dma
-        LEDS_PER_STRIP * BYTES_PER_LED * 8,
+        LEDS_PER_STRIP * sizeof(led_bit_planes_t),
         false);
 
     irq_add_shared_handler(DMA_IRQ_0, ws2812_dma_complete_handler, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
@@ -58,5 +58,5 @@ void ws2812_dma_init(PIO pio, uint sm)
 
 void output_colors_dma(int active_planes)
 {
-    dma_channel_hw_addr(ws2812_dma_channel)->al3_read_addr_trig = (uintptr_t)(led_strips_bitplanes + active_planes);
+    dma_channel_hw_addr(ws2812_dma_channel)->al3_read_addr_trig = (uintptr_t)(led_strips_bitstream + active_planes);
 }

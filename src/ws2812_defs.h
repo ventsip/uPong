@@ -14,22 +14,32 @@
 #error "NMB_STRIPS must be <= 8"
 #endif
 #if NMB_STRIPS <= 8
-typedef uint8_t bit_plane_type; // must be wide enough to contain the number of strips
+typedef uint8_t bit_plane_t; // must be wide enough to contain the number of strips
 #endif
 
-#define BYTES_PER_LED 3
+#define BITS_PER_COLOR_COMPONENT 8
+#define BYTES_PER_WS2812_LED 3
+typedef struct
+{
+    bit_plane_t led[BYTES_PER_WS2812_LED][BITS_PER_COLOR_COMPONENT];
+} led_bit_planes_t;
 
-// two bit planes, each consists of LEDS_PER_STRIP * BYTES_PER_LED elements of bit_plane_type
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t g;
+    uint8_t r;
+    uint8_t b;
+    uint8_t padding;
+} led_color_t;
+#pragma pack(pop)
+
+// two bit planes,
 // bit planes are effectively a transposed version of the color values of each led of each strip
 // the two bit planes are used for double buffering
-static bit_plane_type led_strips_bitplanes[2][LEDS_PER_STRIP * BYTES_PER_LED * 8] __attribute__((aligned(4)));
-static uint8_t led_colors[NMB_STRIPS * LEDS_PER_STRIP * BYTES_PER_LED] __attribute__((aligned(4))); // color order is GRB (WS2812)
-static inline void set_led_color(uint8_t *led, uint8_t r, uint8_t g, uint8_t b)
-{
-    *led++ = g;
-    *led++ = r;
-    *led = b;
-}
+static led_bit_planes_t led_strips_bitstream[2][LEDS_PER_STRIP] __attribute__((aligned(4)));
+static led_color_t led_colors[NMB_STRIPS][LEDS_PER_STRIP] __attribute__((aligned(4)));
+
 static inline void clear_led_colors()
 {
     memset(led_colors, 0, sizeof(led_colors));
