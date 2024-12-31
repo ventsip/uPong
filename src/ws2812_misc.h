@@ -61,16 +61,16 @@ static inline void led_colors_to_bitplanes(
 {
     memset(bitplane, 0, leds_per_strip * sizeof(led_bit_planes_t));
 
-    int color_byte_offset = 0;
+    uint8_t *color = (uint8_t *)colors;
     for (int strip = 0; strip < nmb_strips; strip++)
     {
         const bit_plane_t strip_bit = 1 << strip;
         int bit_plane_led_offset = 0;
-        for (int led = 0; led < leds_per_strip; led++, color_byte_offset += sizeof(led_color_t) - BYTES_PER_WS2812_LED)
+        for (int led = 0; led < leds_per_strip; led++, color += sizeof(led_color_t) - BYTES_PER_WS2812_LED)
         {
-            for (int c = 0; c < BYTES_PER_WS2812_LED; c++, color_byte_offset++, bit_plane_led_offset += 8)
+            for (int c = 0; c < BYTES_PER_WS2812_LED; c++, color++, bit_plane_led_offset += 8)
             {
-                uint8_t color_byte = ((uint8_t *)colors)[color_byte_offset];
+                uint8_t color_byte = *color;
                 bit_plane_t *bp = (bit_plane_t *)bitplane + bit_plane_led_offset + 7;
                 for (int i = 0; i < 8; i++, color_byte >>= 1, bp--)
                 {
