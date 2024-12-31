@@ -104,8 +104,9 @@ static void inline reverse_copy_pixels_to_led_colors(uint8_t *led_colors, const 
     const uint8_t *pixel = pixels + (n - 1) * BYTES_PER_PIXEL;
     for (int i = 0; i < n; i++, pixel -= 2 * BYTES_PER_PIXEL)
     {
-        *led++ = *pixel++;
-        *led++ = *pixel++;
+        *(uint16_t *)led = *(uint16_t *)pixel;
+        led += 2;
+        pixel += 2;
         *led++ = *pixel++;
     }
 }
