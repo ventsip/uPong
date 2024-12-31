@@ -1,25 +1,50 @@
 #pragma once
 
+#include "hardware/dma.h"
+
 #include "fonts.h"
 #include "screen_defs.h"
 
 // screen buffer
-static uint8_t screen[SCREEN_WIDTH * SCREEN_HEIGHT * BYTES_PER_PIXEL];
+static uint8_t scr_screen[SCREEN_WIDTH * SCREEN_HEIGHT * BYTES_PER_PIXEL] __attribute__((aligned(4)));
 static inline void clear_screen()
 {
-    memset(screen, 0, sizeof(screen));
+    memset(scr_screen, 0, sizeof(scr_screen));
 }
+
+static int scr_dma_channel = -1;
 
 void screen_init()
 {
     clear_screen();
+
+    scr_dma_channel = dma_claim_unused_channel(true);
+    dma_channel_config channelConfig = dma_channel_get_default_config(scr_dma_channel);
+#if LED_MATRIX_WIDTH % 4 == 0
+    channel_config_set_transfer_data_size(&channelConfig, DMA_SIZE_32);
+#else
+    channel_config_set_transfer_data_size(&channelConfig, DMA_SIZE_8);
+#endif
+    channel_config_set_read_increment(&channelConfig, true);
+    channel_config_set_write_increment(&channelConfig, true);
+    dma_channel_configure(
+        scr_dma_channel, // Channel to be configured
+        &channelConfig,  // The configuration we just created
+        NULL,            // The initial write address
+        NULL,            // The initial read address
+#if LED_MATRIX_WIDTH % 4 == 0
+        LED_MATRIX_WIDTH * BYTES_PER_PIXEL / 4, // Number of transfers; in this case each is 4 bytes.
+#else
+        LED_MATRIX_WIDTH * BYTES_PER_PIXEL, // Number of transfers; in this case each is 1 byte.
+#endif
+        false); // Don't start immediately
 }
 
 static inline void set_pixel(const int x, const int y, const uint8_t r, const uint8_t g, const uint8_t b)
 {
     if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
     {
-        uint8_t *p = screen + (y * SCREEN_WIDTH + x) * BYTES_PER_PIXEL;
+        uint8_t *p = scr_screen + (y * SCREEN_WIDTH + x) * BYTES_PER_PIXEL;
         *p++ = g;
         *p++ = r;
         *p = b;
@@ -59,7 +84,7 @@ static inline void draw_transparent_rect(int x, int y, int w, int h, const uint8
     for (int i = 0; i < h; i++)
     {
         const uint8_t anti_alpha = 255 - alpha;
-        uint8_t *p = screen + ((y + i) * SCREEN_WIDTH + x) * BYTES_PER_PIXEL;
+        uint8_t *p = scr_screen + ((y + i) * SCREEN_WIDTH + x) * BYTES_PER_PIXEL;
 
         for (int j = 0; j < w; j++)
         {
@@ -96,7 +121,7 @@ static void screen_to_led_colors()
 {
     for (int y = 0, inv_y = SCREEN_HEIGHT - 1; y < SCREEN_HEIGHT; y++, inv_y--)
     {
-        uint8_t *pixel = screen + y * SCREEN_WIDTH * BYTES_PER_PIXEL;
+        uint8_t *pixel = scr_screen + y * SCREEN_WIDTH * BYTES_PER_PIXEL;
         uint8_t *led = led_colors + inv_y * LED_MATRIX_WIDTH * BYTES_PER_PIXEL;
 
         for (int i = 0; i < 3; ++i, pixel += LED_MATRIX_WIDTH * BYTES_PER_PIXEL, led += LEDS_PER_STRIP * BYTES_PER_LED)
@@ -107,7 +132,11 @@ static void screen_to_led_colors()
             }
             else
             {
-                memcpy(led, pixel, LED_MATRIX_WIDTH * BYTES_PER_PIXEL);
+                dma_channel_wait_for_finish_blocking(scr_dma_channel);
+                //   configure the DMA channel with pixel as source and led as destination address
+                dma_hw->ch[scr_dma_channel].al2_read_addr = (uint32_t)pixel;
+                dma_hw->ch[scr_dma_channel].al2_write_addr_trig = (uint32_t)led;
+                // memcpy(led, pixel, LED_MATRIX_WIDTH * BYTES_PER_PIXEL);
             }
         }
     }

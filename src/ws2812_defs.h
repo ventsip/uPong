@@ -22,8 +22,8 @@ typedef uint8_t bit_plane_type; // must be wide enough to contain the number of 
 // two bit planes, each consists of LEDS_PER_STRIP * BYTES_PER_LED elements of bit_plane_type
 // bit planes are effectively a transposed version of the color values of each led of each strip
 // the two bit planes are used for double buffering
-static bit_plane_type led_strips_bitplanes[2][LEDS_PER_STRIP * BYTES_PER_LED * 8];
-static uint8_t led_colors[NMB_STRIPS * LEDS_PER_STRIP * BYTES_PER_LED]; // color order is GRB (WS2812)
+static bit_plane_type led_strips_bitplanes[2][LEDS_PER_STRIP * BYTES_PER_LED * 8] __attribute__((aligned(4)));
+static uint8_t led_colors[NMB_STRIPS * LEDS_PER_STRIP * BYTES_PER_LED] __attribute__((aligned(4))); // color order is GRB (WS2812)
 static inline void set_led_color(uint8_t *led, uint8_t r, uint8_t g, uint8_t b)
 {
     *led++ = g;
