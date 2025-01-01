@@ -50,6 +50,9 @@ pico_enable_stdio_uart(uPong 0)
 target_link_libraries(uPong
         pico_stdlib)
 
+# Set compiler flags for highest warning level and treat warnings as errors
+target_compile_options(uPong PRIVATE -Wall -Wextra -Werror)
+
 # Add the standard include files to the build
 target_include_directories(uPong PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
