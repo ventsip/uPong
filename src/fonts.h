@@ -25,7 +25,7 @@ static const uint8_t font_3x5_digits[10][5] = {
      0b111},
     {0b111,
      0b001,
-     0b111,
+     0b011,
      0b001,
      0b111},
     {0b101,
