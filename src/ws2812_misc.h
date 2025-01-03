@@ -8,6 +8,7 @@
 
 bool WS2812_init()
 {
+#ifdef WS2812_PARALLEL
     PIO pio;
     uint sm;
     uint offset;
@@ -21,8 +22,38 @@ bool WS2812_init()
     ws2812_dma_init(pio, sm);
 
     return success;
+#endif
+#ifdef WS2812_SINGLE
+    PIO pio[NMB_STRIPS];
+    uint sm[NMB_STRIPS];
+    uint offset[NMB_STRIPS];
+
+    uint sm_mask = 0;
+
+    auto success = true;
+    for (int i = 0; i < NMB_STRIPS && success; i++)
+    {
+        success = pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_single_program, &pio[i], &sm[i], &offset[i], WS2812_PIN_BASE + i, 1, true);
+        hard_assert(success);
+        ws2812_single_program_init(pio[i], sm[i], offset[i], WS2812_PIN_BASE + i, 800000);
+        sm_mask |= 1u << sm[i];
+    }
+    sem_init(&ws2812_transmitting_sem, 1, 1); // initially posted so we don't block first time
+    ws2812_dma_init(pio, sm);
+
+    // check if all sms are on the same PIO and synchronize them
+    auto p = pio[0];
+    for (int i = 1; i < NMB_STRIPS; i++)
+    {
+        hard_assert(p == pio[i]);
+    }
+    pio_enable_sm_mask_in_sync(pio[0], sm_mask);
+
+    return success;
+#endif
 }
 
+#ifdef WS2812_PARALLEL
 static inline void led_colors_to_bitplanes_standard(
     led_bit_planes_t *const bitplane,
     const led_color_t *const colors)
@@ -79,3 +110,4 @@ static inline void led_colors_to_bitplanes(
         }
     }
 }
+#endif
