@@ -140,7 +140,9 @@ void screen_pattern_6(absolute_time_t, int, uint8_t brightness, int frame_rate)
     // draw transparent rectangle under the number
     draw_transparent_rect(SCREEN_WIDTH - digits * 4 - 1, 0, digits * 4 + 1, 7, ws2812_pack_color(brightness, brightness, brightness), 128);
 
-    draw_3x5_number(frame_rate, SCREEN_WIDTH - digits * 4, 1, ws2812_pack_color(0, 0, 0));
+    draw_3x5_number(frame_rate, SCREEN_WIDTH - digits * 4, 1, ws2812_pack_color(0, 0, brightness / 8));
+
+    draw_3x5_number(frame_rate, SCREEN_WIDTH - digits * 4, SCREEN_HEIGHT - 6, ws2812_pack_color(brightness / 8, brightness / 8, brightness / 8));
 }
 
 void screen_pattern_7(absolute_time_t, int counter, uint8_t brightness)
@@ -164,7 +166,6 @@ void screen_pattern_8(absolute_time_t, int, uint8_t brightness)
 
 void screen_pattern_8()
 {
-    // draw a diagonal line
     for (int i = 0; i < 256; i++)
     {
         set_pixel(i % LED_MATRIX_WIDTH, i / LED_MATRIX_HEIGHT, ws2812_pack_color(0, i, 0));
@@ -172,4 +173,11 @@ void screen_pattern_8()
         set_pixel(i % LED_MATRIX_WIDTH + LED_MATRIX_WIDTH + LED_MATRIX_WIDTH, i / LED_MATRIX_HEIGHT, ws2812_pack_color(0, 0, i));
         set_pixel(i % LED_MATRIX_WIDTH + LED_MATRIX_WIDTH, i / LED_MATRIX_HEIGHT + LED_MATRIX_HEIGHT, ws2812_pack_color(i, i, i));
     }
+}
+
+void screen_pattern_9()
+{
+    set_pixel(0, SCREEN_HEIGHT - 1, ws2812_pack_color(0, 0, 0));
+    set_pixel(LED_MATRIX_WIDTH, SCREEN_HEIGHT - 1, ws2812_pack_color(128, 128, 128));
+    set_pixel(2 * LED_MATRIX_WIDTH, SCREEN_HEIGHT - 1, ws2812_pack_color(255, 255, 255));
 }

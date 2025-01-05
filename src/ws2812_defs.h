@@ -1,10 +1,7 @@
 #pragma once
-#ifdef WS2812_PARALLEL
-#define WS2812_RESET_US 100
-#endif
-#ifdef WS2812_SINGLE
-#define WS2812_RESET_US 300
-#endif
+
+#define WS2812_RESET_US 60
+
 #define WS2812_PIN_BASE 2
 #if WS2812_PIN_BASE >= NUM_BANK0_GPIOS
 #error Attempting to use a pin>=32 on a platform that does not support it
