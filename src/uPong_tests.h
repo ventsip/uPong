@@ -1,6 +1,7 @@
-#include "screen_defs.h"
+#include "screen_primitives.h"
 #include "ws2812_defs.h"
 #include "ws2812_misc.h"
+#include <math.h>
 
 int unit_tests()
 {
@@ -60,12 +61,12 @@ void led_pattern_2(int counter, int brightness)
     }
 }
 
-void screen_pattern_1(absolute_time_t, int counter, uint8_t brightness)
+void screen_pattern_running_pixel(absolute_time_t, int counter, uint8_t brightness)
 {
     set_pixel(counter % SCREEN_WIDTH, (counter / SCREEN_WIDTH) % SCREEN_HEIGHT, ws2812_pack_color(0, brightness, 0));
 }
 
-void screen_pattern_2(absolute_time_t, int, uint8_t brightness)
+void screen_pattern_random_noise(absolute_time_t, int, uint8_t brightness)
 {
     // set random pixels
     for (int i = 0; i < 60; i++)
@@ -76,11 +77,11 @@ void screen_pattern_2(absolute_time_t, int, uint8_t brightness)
     }
 }
 
-void screen_pattern_3(absolute_time_t, int counter, int brightness)
+void screen_pattern_exploding_circle(absolute_time_t, int counter, int brightness)
 {
     int x0 = SCREEN_WIDTH / 2;
     int y0 = SCREEN_HEIGHT / 2;
-    int radius = (counter / 2) % (SCREEN_WIDTH * 2);
+    int radius = (counter / 2) % (SCREEN_WIDTH * 3);
 
     for (int y = 0; y < SCREEN_HEIGHT; y++)
     {
@@ -96,7 +97,7 @@ void screen_pattern_3(absolute_time_t, int counter, int brightness)
     }
 }
 
-void screen_pattern_4(absolute_time_t current_time, int, uint8_t brightness)
+void screen_pattern_blinking_cursor(absolute_time_t current_time, int, uint8_t brightness)
 {
     // blink draw green retangle (3x5) every second
     if (to_us_since_boot(current_time) / 500000 % 2 == 0)
@@ -111,7 +112,7 @@ void screen_pattern_4(absolute_time_t current_time, int, uint8_t brightness)
     }
 }
 
-void screen_pattern_5(absolute_time_t current_time, int, uint8_t brightness)
+void screen_pattern_uptime_in_ms(absolute_time_t current_time, int, uint8_t brightness)
 {
     uint n = to_us_since_boot(current_time) / 1000;
 
@@ -128,7 +129,7 @@ void screen_pattern_5(absolute_time_t current_time, int, uint8_t brightness)
     draw_3x5_number(n, 1, SCREEN_HEIGHT - 6, ws2812_pack_color(0, brightness, 0));
 }
 
-void screen_pattern_6(absolute_time_t, int, uint8_t brightness, int frame_rate)
+void screen_pattern_frame_rate(absolute_time_t, int, uint8_t brightness, int frame_rate)
 {
     // get number of digits in n
     int digits = 0;
@@ -141,11 +142,22 @@ void screen_pattern_6(absolute_time_t, int, uint8_t brightness, int frame_rate)
     draw_transparent_rect(SCREEN_WIDTH - digits * 4 - 1, 0, digits * 4 + 1, 7, ws2812_pack_color(brightness, brightness, brightness), 128);
 
     draw_3x5_number(frame_rate, SCREEN_WIDTH - digits * 4, 1, ws2812_pack_color(0, 0, brightness / 8));
-
-    draw_3x5_number(frame_rate, SCREEN_WIDTH - digits * 4, SCREEN_HEIGHT - 6, ws2812_pack_color(brightness / 8, brightness / 8, brightness / 8));
 }
 
-void screen_pattern_7(absolute_time_t, int counter, uint8_t brightness)
+void screen_pattern_brightness(absolute_time_t, int, uint8_t brightness, __unused int frame_rate)
+{
+    // get number of digits in n
+    int digits = 0;
+    for (uint i = brightness; i > 0; i /= 10)
+    {
+        digits++;
+    }
+
+    // draw transparent rectangle under the number
+    draw_3x5_number(brightness, SCREEN_WIDTH - digits * 4, SCREEN_HEIGHT - 6, ws2812_pack_color(32, 32, 32));
+}
+
+void screen_pattern_bg_flag_transparent(absolute_time_t, int counter, uint8_t brightness)
 {
     const int x0 = (counter / 4) % (SCREEN_WIDTH + 24) - 12;
     const int y0 = (counter / 8) % (SCREEN_HEIGHT + 18) - 9;
@@ -155,7 +167,7 @@ void screen_pattern_7(absolute_time_t, int counter, uint8_t brightness)
     draw_transparent_rect(x0, y0 + 6, 12, 3, ws2812_pack_color(214 * brightness >> 8, 38 * brightness >> 8, 18 * brightness >> 8), 128);
 }
 
-void screen_pattern_8(absolute_time_t, int, uint8_t brightness)
+void screen_pattern_diagonal_line(absolute_time_t, int, uint8_t brightness)
 {
     // draw a diagonal line
     for (int i = 0; i < SCREEN_WIDTH; i++)
@@ -164,7 +176,7 @@ void screen_pattern_8(absolute_time_t, int, uint8_t brightness)
     }
 }
 
-void screen_pattern_8()
+void screen_pattern_color_matrices()
 {
     for (int i = 0; i < 256; i++)
     {
@@ -175,9 +187,33 @@ void screen_pattern_8()
     }
 }
 
-void screen_pattern_9()
+void screen_pattern_three_pixels()
 {
     set_pixel(0, SCREEN_HEIGHT - 1, ws2812_pack_color(0, 0, 0));
     set_pixel(LED_MATRIX_WIDTH, SCREEN_HEIGHT - 1, ws2812_pack_color(128, 128, 128));
     set_pixel(2 * LED_MATRIX_WIDTH, SCREEN_HEIGHT - 1, ws2812_pack_color(255, 255, 255));
+}
+
+void screen_pattern_lines_1(absolute_time_t, int counter, int brightness)
+{
+    // draw line around the screen
+    draw_line(0, 0, SCREEN_WIDTH - 1, 0, ws2812_pack_color(brightness, 0, brightness));
+    draw_line(0, 0, 0, SCREEN_HEIGHT - 1, ws2812_pack_color(0, brightness, 0));
+    draw_line(SCREEN_WIDTH - 1, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, ws2812_pack_color(0, 0, brightness));
+    draw_line(0, SCREEN_HEIGHT - 1, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, ws2812_pack_color(0, brightness, brightness));
+
+    // iterate over points of a circle with radius SCREEN_WIDTH
+    auto i = counter % 360;
+    int x = SCREEN_WIDTH * cos(i * 3.14159 / 180);
+    int y = SCREEN_WIDTH * sin(i * 3.14159 / 180);
+    draw_line(SCREEN_WIDTH / 2 - x, SCREEN_HEIGHT / 2 - y, SCREEN_WIDTH / 2 + x, SCREEN_HEIGHT / 2 + y, ws2812_pack_color(brightness, brightness, 0));
+}
+
+void screen_pattern_scroll_text(absolute_time_t, int counter, int brightness)
+{
+    counter /= 6;
+    static char text[] = "0123456789 The quick brown fox jumps over the lazy dog.";
+    // draw text
+    int x = SCREEN_WIDTH - counter % (SCREEN_WIDTH + strlen(text) * 4);
+    draw_3x5_string(text, x, SCREEN_HEIGHT - 13, ws2812_pack_color(counter % brightness, (counter / 2 + 64) % brightness, (counter / 3 + 128) % brightness));
 }

@@ -68,6 +68,7 @@ void output_colors()
 {
     // disable all state machines
     pio_set_sm_mask_enabled(pio[0], sm_mask, false);
+
     output_colors_dma();
 
     bool ready = false;

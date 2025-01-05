@@ -37,59 +37,6 @@ void screen_init()
         false); // Don't start immediately
 }
 
-static inline void set_pixel(const int x, const int y, const led_color_t c)
-{
-    if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
-    {
-        scr_screen[y][x] = c;
-    }
-}
-
-static inline void draw_transparent_rect(int x, int y, int w, int h, const led_color_t c, const uint8_t alpha)
-{
-    // fix coordinates to be within the screen
-    if (x < 0)
-    {
-        w += x;
-        x = 0;
-    }
-    if (y < 0)
-    {
-        h += y;
-        y = 0;
-    }
-    if (x + w > SCREEN_WIDTH)
-    {
-        w = SCREEN_WIDTH - x;
-    }
-    if (y + h > SCREEN_HEIGHT)
-    {
-        h = SCREEN_HEIGHT - y;
-    }
-    if (w <= 0 || h <= 0)
-    {
-        return;
-    }
-
-    const uint16_t r_scaled = c.r * alpha;
-    const uint16_t g_scaled = c.g * alpha;
-    const uint16_t b_scaled = c.b * alpha;
-
-    for (int i = 0; i < h; i++)
-    {
-        const uint8_t anti_alpha = 255 - alpha;
-        led_color_t *p = &scr_screen[y + i][x];
-
-        for (int j = 0; j < w; j++)
-        {
-            p->g = (p->g * anti_alpha + g_scaled) >> 8;
-            p->r = (p->r * anti_alpha + r_scaled) >> 8;
-            p->b = (p->b * anti_alpha + b_scaled) >> 8;
-            p++;
-        }
-    }
-}
-
 static void inline reverse_copy_pixels_to_led_colors(led_color_t *led_colors, const led_color_t *pixels, const int n)
 {
     pixels = pixels + n - 1;
@@ -127,44 +74,4 @@ static void screen_to_led_colors()
             }
         }
     }
-}
-
-// draw a 3x5 digit at the specified position
-// x and y are considered to be the top left corner of the digit
-void draw_3x5_digit(const char d, const int x, int y, const led_color_t c)
-{
-    const uint8_t *digit = (d < '0' || d > '9') ? font_3x5_missing_char : font_3x5_digits[d - '0'];
-
-    for (int row = 0; row < 5; row++, y++)
-    {
-        const uint8_t line = digit[row];
-
-        if (line & 0b100)
-        {
-            set_pixel(x, y, c);
-        }
-        if (line & 0b010)
-        {
-            set_pixel(x + 1, y, c);
-        }
-        if (line & 0b001)
-        {
-            set_pixel(x + 2, y, c);
-        }
-    }
-}
-
-void draw_3x5_number_as_string(const char *str, const int x, const int y, const led_color_t c)
-{
-    for (int i = 0; str[i] != '\0'; i++)
-    {
-        draw_3x5_digit(str[i], x + i * 4, y, c);
-    }
-}
-
-void draw_3x5_number(const uint number, const int x, const int y, const led_color_t c)
-{
-    char buffer[16];
-    snprintf(buffer, sizeof(buffer), "%u", number);
-    draw_3x5_number_as_string(buffer, x, y, c);
 }

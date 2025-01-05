@@ -4,7 +4,7 @@
 
 #define WS2812_SINGLE
 
-#include "screen_misc.h"
+#include "screen_primitives.h"
 #include "uPong_tests.h"
 #include "ws2812_misc.h"
 
@@ -41,14 +41,28 @@ int main()
     int frame_buffer_index = 0;
 #endif
     int counter = 0;
-    int brightness = 32;
+    unsigned int brightness = 32;
     int frame = 0;
     int frame_rate = 0;
     absolute_time_t last_time = {0};
     absolute_time_t start_time = {0};
+
     while (true)
     {
         set_status_led(frame & 1);
+
+        auto c = getchar_timeout_us(0);
+        if (c != PICO_ERROR_TIMEOUT)
+        {
+            if (c == '+')
+            {
+                brightness = (brightness + 1) % 256;
+            }
+            if (c == '-')
+            {
+                brightness = (brightness - 1) % 256;
+            }
+        }
 
         absolute_time_t current_time = get_absolute_time();
         if (absolute_time_diff_us(last_time, current_time) >= 1000000)
@@ -59,15 +73,19 @@ int main()
         }
 
         clear_screen();
-        screen_pattern_1(current_time, counter, brightness);
-        screen_pattern_3(current_time, counter, brightness);
-        screen_pattern_2(current_time, counter, brightness);
-        screen_pattern_4(current_time, counter, brightness);
-        screen_pattern_5(current_time, counter, brightness);
-        screen_pattern_7(current_time, counter, brightness);
-        screen_pattern_6(current_time, counter, brightness, frame_rate);
-        // screen_pattern_9();
-        // screen_pattern_8();
+
+        screen_pattern_exploding_circle(current_time, counter, brightness);
+        screen_pattern_running_pixel(current_time, counter, brightness);
+        screen_pattern_random_noise(current_time, counter, brightness);
+        screen_pattern_blinking_cursor(current_time, counter, brightness);
+        screen_pattern_uptime_in_ms(current_time, counter, brightness);
+        screen_pattern_bg_flag_transparent(current_time, counter, brightness);
+        screen_pattern_frame_rate(current_time, counter, brightness, frame_rate);
+        screen_pattern_brightness(current_time, counter, brightness, frame_rate);
+        screen_pattern_lines_1(current_time, counter, brightness);
+        screen_pattern_scroll_text(current_time, counter, brightness);
+        // screen_pattern_three_pixels();
+        // screen_pattern_color_matrices();
 
         // convert the screen buffer to led colors
         start_time = get_absolute_time();
