@@ -211,9 +211,11 @@ void screen_pattern_lines_1(absolute_time_t, int counter, int brightness)
 
 void screen_pattern_scroll_text(absolute_time_t, int counter, int brightness)
 {
-    counter /= 6;
-    static char text[] = "0123456789 The quick brown fox jumps over the lazy dog.";
+    counter /= 12;
+    // string that contain all characters from code 32 to 126
+    static char text[128] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
     // draw text
-    int x = SCREEN_WIDTH - counter % (SCREEN_WIDTH + strlen(text) * 4);
-    draw_3x5_string(text, x, SCREEN_HEIGHT - 13, ws2812_pack_color(counter % brightness, (counter / 2 + 64) % brightness, (counter / 3 + 128) % brightness));
+    int x = SCREEN_WIDTH - (counter % (12 + strlen(text)) * 4);
+    draw_3x5_string(text, x, SCREEN_HEIGHT - 13, ws2812_pack_color(brightness, brightness, brightness));
 }

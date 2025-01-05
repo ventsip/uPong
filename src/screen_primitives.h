@@ -222,28 +222,21 @@ void draw_3x5_char(const char ch, const int x, int y, const led_color_t c)
 {
     const uint8_t *font_char = font_3x5_missing_char;
 
-    if (ch >= '0' && ch <= '9')
+    if (ch >= 32 && ch <= 96)
     {
-        font_char = font_3x5_48_57[ch - '0'];
+        font_char = font_3x5_32_96[ch - 32];
     }
     else
     {
-        if (ch >= 'A' && ch <= 'Z')
+        if (ch >= 'a' && ch <= 'z') // a-z
         {
-            font_char = font_3x5_65_90[ch - 'A'];
+            font_char = font_3x5_32_96[ch - 'a' + 'A' - 32];
         }
         else
         {
-            if (ch >= 'a' && ch <= 'z')
+            if (ch >= 123 && ch <= 126)
             {
-                font_char = font_3x5_65_90[ch - 'a'];
-            }
-            else
-            {
-                if (ch >= ' ' && ch <= '/')
-                {
-                    font_char = font_3x5_32_47[ch - 32];
-                }
+                font_char = font_3x5_123_126[ch - 123];
             }
         }
     }
