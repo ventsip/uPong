@@ -221,29 +221,33 @@ static inline void draw_transparent_rect(int x, int y, int w, int h, const led_c
 void draw_3x5_char(const char ch, const int x, int y, const led_color_t c)
 {
     const uint8_t *font_char = font_3x5_missing_char;
+    int font_char_column = 0;
 
     if (ch >= 32 && ch <= 96)
     {
-        font_char = font_3x5_32_96[ch - 32];
+        font_char_column = ch - 32;
+        font_char = font_3x5_32_96_optimized[font_char_column / 2];
     }
     else
     {
         if (ch >= 'a' && ch <= 'z') // a-z
         {
-            font_char = font_3x5_32_96[ch - 'a' + 'A' - 32];
+            font_char_column = ch - 'a' + 'A' - 32;
+            font_char = font_3x5_32_96_optimized[font_char_column / 2];
         }
         else
         {
             if (ch >= 123 && ch <= 126)
             {
-                font_char = font_3x5_123_126[ch - 123];
+                font_char_column = ch - 122;
+                font_char = font_3x5_122_126_optimized[font_char_column / 2];
             }
         }
     }
 
     for (int row = 0; row < 5; row++, y++)
     {
-        const uint8_t line = font_char[row];
+        const uint8_t line = (font_char_column % 2) ? font_char[row] : (font_char[row] >> 3);
 
         if (line & 0b100)
         {

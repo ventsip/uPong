@@ -37,8 +37,12 @@ void led_pattern_1(int counter, uint8_t brightness)
             uint8_t red = (color >= 0 && color < 256) ? brightness : 0;
             uint8_t green = (color >= 256 && color < 256 + 256) ? brightness : 0;
             uint8_t blue = (color >= 256 + 256 && color < 256 + 256 + 256) ? brightness : 0;
-
+#ifdef WS2812_PARALLEL
+            led_colors[s][l] = ws2812_pack_color(red, green, blue);
+#endif
+#ifdef WS2812_SINGLE
             (*led_colors)[s][l] = ws2812_pack_color(red, green, blue);
+#endif
         };
     }
 }
@@ -56,7 +60,12 @@ void led_pattern_2(int counter, int brightness)
 
         for (int i = 1; i <= 8; ++i)
         {
+#ifdef WS2812_PARALLEL
+            led_colors[strip][(led + LEDS_PER_STRIP - i) % LEDS_PER_STRIP] = ws2812_pack_color(red / i, green / i, blue / i);
+#endif
+#ifdef WS2812_SINGLE
             (*led_colors)[strip][(led + LEDS_PER_STRIP - i) % LEDS_PER_STRIP] = ws2812_pack_color(red / i, green / i, blue / i);
+#endif
         }
     }
 }
@@ -211,11 +220,43 @@ void screen_pattern_lines_1(absolute_time_t, int counter, int brightness)
 
 void screen_pattern_scroll_text(absolute_time_t, int counter, int brightness)
 {
-    counter /= 12;
+    counter /= 10;
     // string that contain all characters from code 32 to 126
-    static char text[128] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+    static const char text[] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ Well, hello there. Price tag: $25.00. baba.meca@gorata.com";
 
     // draw text
     int x = SCREEN_WIDTH - (counter % (12 + strlen(text)) * 4);
     draw_3x5_string(text, x, SCREEN_HEIGHT - 13, ws2812_pack_color(brightness, brightness, brightness));
+}
+
+void screen_pattern_color_squares(absolute_time_t, __unused int counter, int brightness)
+{
+    for (int y = 0; y < LED_MATRIX_HEIGHT; y++)
+    {
+        for (int x = 0; x < LED_MATRIX_WIDTH; x++)
+        {
+            set_pixel(x,
+                      y,
+                      ws2812_pack_color((LED_MATRIX_WIDTH - x - 1) * brightness / LED_MATRIX_WIDTH,
+                                        (LED_MATRIX_HEIGHT - y - 1) * brightness / LED_MATRIX_HEIGHT,
+                                        0));
+            set_pixel(x,
+                      y + LED_MATRIX_HEIGHT,
+                      ws2812_pack_color((LED_MATRIX_WIDTH - x - 1) * brightness / LED_MATRIX_WIDTH,
+                                        0,
+                                        y * brightness / LED_MATRIX_HEIGHT));
+            set_pixel(x + LED_MATRIX_WIDTH,
+                      y,
+                      ws2812_pack_color(0,
+                                        (LED_MATRIX_HEIGHT - y - 1) * brightness / LED_MATRIX_HEIGHT,
+                                        x * brightness / LED_MATRIX_WIDTH));
+            set_pixel(x + LED_MATRIX_WIDTH,
+                      y + LED_MATRIX_HEIGHT,
+                      ws2812_pack_color(0,
+                                        0,
+                                        std::min((x + y) * brightness / ((LED_MATRIX_WIDTH + LED_MATRIX_HEIGHT) / 2), brightness)));
+
+            //           set_pixel(x + LED_MATRIX_WIDTH, y, ws2812_pack_color((LED_MATRIX_WIDTH - x - 1) * brightness / LED_MATRIX_WIDTH, y * brightness / LED_MATRIX_HEIGHT, 0));
+        }
+    }
 }

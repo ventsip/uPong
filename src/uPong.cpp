@@ -74,15 +74,16 @@ int main()
 
         clear_screen();
 
-        screen_pattern_exploding_circle(current_time, counter, brightness);
-        screen_pattern_running_pixel(current_time, counter, brightness);
-        screen_pattern_random_noise(current_time, counter, brightness);
-        screen_pattern_blinking_cursor(current_time, counter, brightness);
-        screen_pattern_uptime_in_ms(current_time, counter, brightness);
-        screen_pattern_bg_flag_transparent(current_time, counter, brightness);
-        screen_pattern_frame_rate(current_time, counter, brightness, frame_rate);
-        screen_pattern_brightness(current_time, counter, brightness, frame_rate);
-        screen_pattern_lines_1(current_time, counter, brightness);
+        // screen_pattern_exploding_circle(current_time, counter, brightness);
+        // screen_pattern_running_pixel(current_time, counter, brightness);
+        // screen_pattern_random_noise(current_time, counter, brightness);
+        // screen_pattern_blinking_cursor(current_time, counter, brightness);
+        // screen_pattern_uptime_in_ms(current_time, counter, brightness);
+        // screen_pattern_bg_flag_transparent(current_time, counter, brightness);
+        // screen_pattern_frame_rate(current_time, counter, brightness, frame_rate);
+        // screen_pattern_brightness(current_time, counter, brightness, frame_rate);
+        // screen_pattern_lines_1(current_time, counter, brightness);
+        screen_pattern_color_squares(current_time, counter, brightness);
         screen_pattern_scroll_text(current_time, counter, brightness);
         // screen_pattern_three_pixels();
         // screen_pattern_color_matrices();
