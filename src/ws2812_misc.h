@@ -6,6 +6,13 @@
 #include "ws2812_defs.h"
 #include "ws2812_dma.h"
 
+#ifdef WS2812_SINGLE
+static PIO pio[NMB_STRIPS];
+static uint sm[NMB_STRIPS];
+static uint offset[NMB_STRIPS];
+static uint sm_mask = 0;
+#endif
+
 bool WS2812_init()
 {
 #ifdef WS2812_PARALLEL
@@ -24,11 +31,11 @@ bool WS2812_init()
     return success;
 #endif
 #ifdef WS2812_SINGLE
-    PIO pio[NMB_STRIPS];
-    uint sm[NMB_STRIPS];
-    uint offset[NMB_STRIPS];
+    // PIO pio[NMB_STRIPS];
+    // uint sm[NMB_STRIPS];
+    // uint offset[NMB_STRIPS];
 
-    uint sm_mask = 0;
+    // uint sm_mask = 0;
 
     auto success = true;
     for (int i = 0; i < NMB_STRIPS && success; i++)
@@ -47,11 +54,35 @@ bool WS2812_init()
     {
         hard_assert(p == pio[i]);
     }
+
+    // todo consider using this method instead
+    // pio_enable_sm_multi_mask_in_sync;
     pio_enable_sm_mask_in_sync(pio[0], sm_mask);
 
     return success;
 #endif
 }
+
+#ifdef WS2812_SINGLE
+void output_colors()
+{
+    // disable all state machines
+    pio_set_sm_mask_enabled(pio[0], sm_mask, false);
+    output_colors_dma();
+
+    bool ready = false;
+    while (!ready)
+    {
+        ready = true;
+        for (int i = 0; i < NMB_STRIPS; i++)
+        {
+            ready &= !pio_sm_is_tx_fifo_empty(pio[i], sm[i]);
+        }
+    }
+
+    pio_enable_sm_mask_in_sync(pio[0], sm_mask);
+}
+#endif
 
 #ifdef WS2812_PARALLEL
 static inline void led_colors_to_bitplanes_standard(

@@ -60,14 +60,13 @@ static led_bit_planes_t led_strips_bitstream[2][LEDS_PER_STRIP] __attribute__((a
 static led_color_t led_colors[NMB_STRIPS][LEDS_PER_STRIP] __attribute__((aligned(4)));
 #endif
 #ifdef WS2812_SINGLE
-static led_color_t led_colors[NMB_STRIPS][LEDS_PER_STRIP] __attribute__((aligned(4)));
-static led_color_t __led_colors[NMB_STRIPS][LEDS_PER_STRIP] __attribute__((aligned(4)));
+static led_color_t __led_colors[2][NMB_STRIPS][LEDS_PER_STRIP] __attribute__((aligned(4)));
+static int led_colors_active = 0;
+static led_color_t (*led_colors)[NMB_STRIPS][LEDS_PER_STRIP] = &(__led_colors[led_colors_active]);
+static auto led_colors_size = sizeof(__led_colors) / 2;
 #endif
 
 static inline void clear_led_colors()
 {
-    memset(led_colors, 0, sizeof(led_colors));
-#ifdef WS2812_SINGLE
-    memset(__led_colors, 0, sizeof(__led_colors));
-#endif
+    memset(led_colors, 0, led_colors_size);
 }

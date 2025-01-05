@@ -91,7 +91,7 @@ int main()
         frame_buffer_index ^= 1;
 #endif
 #ifdef WS2812_SINGLE
-        output_colors_dma();
+        output_colors();
 #endif
         // toggle active planes
 

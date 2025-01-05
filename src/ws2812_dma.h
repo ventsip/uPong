@@ -114,14 +114,15 @@ void output_colors_dma(int active_planes)
 #ifdef WS2812_SINGLE
 void output_colors_dma()
 {
-    memcpy(__led_colors, led_colors, sizeof(led_colors));
     uint32_t dma_all_channel_mask = 0;
     for (int i = 0; i < NMB_STRIPS; i++)
     {
-        dma_channel_set_read_addr(ws2812_dma_channels[i], __led_colors[i], false);
+        dma_channel_set_read_addr(ws2812_dma_channels[i], __led_colors[led_colors_active][i], false);
         dma_all_channel_mask |= 1u << ws2812_dma_channels[i];
     }
-
     dma_start_channel_mask(dma_all_channel_mask);
+
+    led_colors_active ^= 1;
+    led_colors = &(__led_colors[led_colors_active]);
 }
 #endif

@@ -37,7 +37,7 @@ void led_pattern_1(int counter, uint8_t brightness)
             uint8_t green = (color >= 256 && color < 256 + 256) ? brightness : 0;
             uint8_t blue = (color >= 256 + 256 && color < 256 + 256 + 256) ? brightness : 0;
 
-            led_colors[s][l] = ws2812_pack_color(red, green, blue);
+            (*led_colors)[s][l] = ws2812_pack_color(red, green, blue);
         };
     }
 }
@@ -55,7 +55,7 @@ void led_pattern_2(int counter, int brightness)
 
         for (int i = 1; i <= 8; ++i)
         {
-            led_colors[strip][(led + LEDS_PER_STRIP - i) % LEDS_PER_STRIP] = ws2812_pack_color(red / i, green / i, blue / i);
+            (*led_colors)[strip][(led + LEDS_PER_STRIP - i) % LEDS_PER_STRIP] = ws2812_pack_color(red / i, green / i, blue / i);
         }
     }
 }
