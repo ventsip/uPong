@@ -83,8 +83,9 @@ int main()
         // screen_pattern_frame_rate(current_time, counter, brightness, frame_rate);
         // screen_pattern_brightness(current_time, counter, brightness, frame_rate);
         // screen_pattern_lines_1(current_time, counter, brightness);
-        screen_pattern_color_squares(current_time, counter, brightness);
-        screen_pattern_scroll_text(current_time, counter, brightness);
+        // screen_pattern_color_squares(current_time, counter, brightness);
+        // screen_pattern_scroll_text(current_time, counter, brightness);
+        screen_pattern_color_HSV_square(current_time, counter, brightness);
         // screen_pattern_three_pixels();
         // screen_pattern_color_matrices();
 

@@ -260,3 +260,80 @@ void screen_pattern_color_squares(absolute_time_t, __unused int counter, int bri
         }
     }
 }
+
+// Takes:
+//   h: hue in degrees (0-360)
+//   s: saturation in percent (0-100)
+//   v: value in percent (0-100)
+// Returns: rgb components in range 0-255 via pointers
+void hsv_to_rgb(uint16_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    // Convert inputs to 0-1 range
+    float hue = h / 360.0f;
+    float sat = s / 100.0f;
+    float val = v / 100.0f;
+
+    // Calculate intermediate values
+    float c = val * sat; // Chroma
+    float x = c * (1 - fabsf(fmodf(hue * 6, 2) - 1));
+    float m = val - c;
+
+    float r_tmp, g_tmp, b_tmp;
+
+    if (hue < 1.0f / 6.0f)
+    { // 0-60° - red to yellow
+        r_tmp = c;
+        g_tmp = x;
+        b_tmp = 0;
+    }
+    else if (hue < 2.0f / 6.0f)
+    { // 60-120° - yellow to green
+        r_tmp = x;
+        g_tmp = c;
+        b_tmp = 0;
+    }
+    else if (hue < 3.0f / 6.0f)
+    { // 120-180° - green to cyan
+        r_tmp = 0;
+        g_tmp = c;
+        b_tmp = x;
+    }
+    else if (hue < 4.0f / 6.0f)
+    { // 180-240° - cyan to blue
+        r_tmp = 0;
+        g_tmp = x;
+        b_tmp = c;
+    }
+    else if (hue < 5.0f / 6.0f)
+    { // 240-300° - blue to magenta
+        r_tmp = x;
+        g_tmp = 0;
+        b_tmp = c;
+    }
+    else
+    { // 300-360° - magenta to red
+        r_tmp = c;
+        g_tmp = 0;
+        b_tmp = x;
+    }
+
+    // Add value offset and convert to 0-255 range
+    *r = (uint8_t)((r_tmp + m) * 255);
+    *g = (uint8_t)((g_tmp + m) * 255);
+    *b = (uint8_t)((b_tmp + m) * 255);
+}
+
+void screen_pattern_color_HSV_square(absolute_time_t, __unused int counter, int brightness)
+{
+    counter /= 10;
+
+    for (int y = 0; y < SCREEN_HEIGHT; y++)
+    {
+        for (int x = 0; x < SCREEN_WIDTH; x++)
+        {
+            uint8_t r, g, b;
+            hsv_to_rgb(x * 360 / SCREEN_WIDTH, 100, y * 100 / SCREEN_HEIGHT, &r, &g, &b);
+            set_pixel((x + counter) % SCREEN_WIDTH, y, ws2812_pack_color(r * brightness / 255, g * brightness / 255, b * brightness / 255));
+        }
+    }
+}
