@@ -1,5 +1,6 @@
 #pragma once
 
+#pragma pack(push, 1)
 static const uint8_t font_3x5_missing_char[5] = {
     0b101101,
     0b010010,
@@ -7,7 +8,6 @@ static const uint8_t font_3x5_missing_char[5] = {
     0b010010,
     0b101101};
 
-// Optimized font array - each byte contains two 3-bit characters
 static const uint8_t font_3x5_32_96_optimized[33][5] = {
     {0b000010, // space + !
      0b000010,
@@ -224,3 +224,5 @@ static const uint8_t font_3x5_122_126_optimized[3][5] = {
      0b000000,
      0b000000,
      0b000000}};
+
+#pragma pack(pop)
