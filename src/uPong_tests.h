@@ -325,7 +325,7 @@ void hsv_to_rgb(uint16_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_
 
 void screen_pattern_color_HSV_square(absolute_time_t, __unused int counter, int brightness)
 {
-    counter /= 10;
+    counter /= 4;
 
     for (int y = 0; y < SCREEN_HEIGHT; y++)
     {
@@ -333,7 +333,7 @@ void screen_pattern_color_HSV_square(absolute_time_t, __unused int counter, int 
         {
             uint8_t r, g, b;
             hsv_to_rgb(x * 360 / SCREEN_WIDTH, 100, y * 100 / SCREEN_HEIGHT, &r, &g, &b);
-            set_pixel((x + counter) % SCREEN_WIDTH, y, ws2812_pack_color(r * brightness / 255, g * brightness / 255, b * brightness / 255));
+            set_pixel((SCREEN_WIDTH + x + counter % SCREEN_WIDTH) % SCREEN_WIDTH, y, ws2812_pack_color(r * brightness / 255, g * brightness / 255, b * brightness / 255));
         }
     }
 }

@@ -1,9 +1,11 @@
 #include "pico/stdlib.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #define WS2812_SINGLE
 
+#include "rotary_encoder.h"
 #include "screen_primitives.h"
 #include "uPong_tests.h"
 #include "ws2812_misc.h"
@@ -37,10 +39,14 @@ int main()
 
     WS2812_init();
     screen_init();
+
+    configure_rotary_encoder();
+
 #ifdef WS2812_PARALLEL
     int frame_buffer_index = 0;
 #endif
     int counter = 0;
+    int32_t rotary_pos = 0;
     unsigned int brightness = 32;
     int frame = 0;
     int frame_rate = 0;
@@ -67,7 +73,7 @@ int main()
         absolute_time_t current_time = get_absolute_time();
         if (absolute_time_diff_us(last_time, current_time) >= 1000000)
         {
-            frame_rate = frame;
+            // frame_rate = frame;
             frame = 0;
             last_time = current_time;
         }
@@ -85,7 +91,7 @@ int main()
         // screen_pattern_lines_1(current_time, counter, brightness);
         // screen_pattern_color_squares(current_time, counter, brightness);
         // screen_pattern_scroll_text(current_time, counter, brightness);
-        screen_pattern_color_HSV_square(current_time, counter, brightness);
+        screen_pattern_color_HSV_square(current_time, rotary_pos, brightness);
         // screen_pattern_three_pixels();
         // screen_pattern_color_matrices();
 
@@ -113,15 +119,20 @@ int main()
 #ifdef WS2812_SINGLE
         output_colors();
 #endif
-        // toggle active planes
+        int32_t rotary_delta = rotary_encoder_fetch_counter();
+        rotary_pos += rotary_delta;
+        uint8_t sw_state = rotary_encoder_fetch_sw_state();
 
+        printf("rotary_pos %06ld ", rotary_pos);
+        printf("(counter_diff %03ld); ", rotary_delta);
+        printf("sw_state %d; ", sw_state);
         printf("FPS %d; ", frame_rate);
         // printf("unit tests %s; ", tests ? "passed" : "failed");
         // printf("PIOs/SMs (%ld, %d) (%ld, %d) (%ld, %d); ", (int32_t)pio[0], sm[0], (int32_t)pio[1], sm[1], (int32_t)pio[2], sm[2]);
         printf("screen_to_led_colors: %06lld us; ", time_screen_to_led_colors);
         printf("led_colors_to_bitplanes: %06lld us; ", time_led_colors_to_bitplanes);
-        printf("waited DMA to finish %06lld us\n", time_wait_for_DMA);
-
+        printf("waited DMA to finish %06lld us", time_wait_for_DMA);
+        printf("\n");
         counter++;
         frame++;
     }
