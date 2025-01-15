@@ -163,6 +163,8 @@ void screen_pattern_brightness(absolute_time_t, int, uint8_t brightness, __unuse
     }
 
     // draw transparent rectangle under the number
+    draw_transparent_rect(SCREEN_WIDTH - digits * 4 - 1, SCREEN_HEIGHT - 7, digits * 4 + 1, 7, ws2812_pack_color(0, 0, 0), 250);
+
     draw_3x5_number(brightness, SCREEN_WIDTH - digits * 4, SCREEN_HEIGHT - 6, ws2812_pack_color(32, 32, 32));
 }
 
