@@ -40,7 +40,7 @@ int main()
     WS2812_init();
     screen_init();
 
-    configure_rotary_encoder();
+    configure_rotary_encoders();
 
 #ifdef WS2812_PARALLEL
     int frame_buffer_index = 0;
@@ -122,14 +122,14 @@ int main()
 #ifdef WS2812_SINGLE
         output_colors();
 #endif
-        int32_t rotary_1_delta = rotary_encoder_1_fetch_counter();
+        int32_t rotary_1_delta = rotary_encoder_fetch_counter(&rotary_encoders[0]);
         rotary_1_pos += rotary_1_delta;
-        uint8_t sw_1_state = rotary_encoder_1_fetch_sw_state();
+        uint8_t sw_1_state = rotary_encoder_fetch_sw_state(&rotary_encoders[0]);
 
-        int32_t rotary_2_delta = rotary_encoder_2_fetch_counter();
+        int32_t rotary_2_delta = rotary_encoder_fetch_counter(&rotary_encoders[1]);
         rotary_2_pos += rotary_2_delta;
         brightness = (base_brightness + rotary_2_pos / 4) % 256;
-        uint8_t sw_2_state = rotary_encoder_2_fetch_sw_state();
+        uint8_t sw_2_state = rotary_encoder_fetch_sw_state(&rotary_encoders[1]);
 
         printf("rotary_1_pos %06ld ", rotary_1_pos);
         printf("(counter_1_diff %03ld); ", rotary_1_delta);

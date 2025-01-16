@@ -1,13 +1,17 @@
 #pragma once
 #include "hardware/gpio.h"
 
-#define ROTARY_ENCODER_1_A_PIN 22
-#define ROTARY_ENCODER_1_B_PIN 26
-#define ROTARY_ENCODER_1_SW_PIN 27
+typedef struct
+{
+    uint8_t a;
+    uint8_t b;
+    uint8_t sw;
 
-#define ROTARY_ENCODER_2_A_PIN 19
-#define ROTARY_ENCODER_2_B_PIN 20
-#define ROTARY_ENCODER_2_SW_PIN 21
+    volatile uint8_t a_b_trail;
+    volatile int32_t counter;
+    volatile uint8_t sw_trail;
+    volatile uint8_t sw_state;
+} rotary_encoder;
 
 enum
 {
@@ -16,131 +20,107 @@ enum
     ROTARY_ENCODER_SW_PRESSED,
 };
 
-// rotary encoder state
-static volatile uint8_t rotary_encoder_1_a_b_trail = 0;
-static volatile int32_t rotary_encoder_1_counter = 0;
-static volatile uint8_t rotary_encoder_2_a_b_trail = 0;
-static volatile int32_t rotary_encoder_2_counter = 0;
-// rotary encoder switch state
-static volatile uint8_t rotary_encoder_1_sw_trail = 0;
-static volatile uint8_t rotary_encoder_1_sw_state = ROTARY_ENCODER_SW_NA;
-static volatile uint8_t rotary_encoder_2_sw_trail = 0;
-static volatile uint8_t rotary_encoder_2_sw_state = ROTARY_ENCODER_SW_NA;
+#define NUM_ROTARY_ENCODERS 2
+rotary_encoder rotary_encoders[] = {
+    {22, 26, 27, 0, 0, 0, ROTARY_ENCODER_SW_NA},
+    {19, 20, 21, 0, 0, 0, ROTARY_ENCODER_SW_NA},
+};
 
-int32_t rotary_encoder_1_fetch_counter(void)
+int32_t rotary_encoder_fetch_counter(rotary_encoder *re)
 {
-    const int32_t counter = rotary_encoder_1_counter;
-    rotary_encoder_1_counter = 0;
+    const int32_t counter = re->counter;
+    re->counter = 0;
     return counter;
 }
 
-int32_t rotary_encoder_2_fetch_counter(void)
+uint8_t rotary_encoder_fetch_sw_state(rotary_encoder *re)
 {
-    const int32_t counter = rotary_encoder_2_counter;
-    rotary_encoder_2_counter = 0;
-    return counter;
-}
-
-uint8_t rotary_encoder_1_fetch_sw_state(void)
-{
-    const uint8_t sw_state = rotary_encoder_1_sw_state;
-    rotary_encoder_1_sw_state = ROTARY_ENCODER_SW_NA;
+    const uint8_t sw_state = re->sw_state;
+    re->sw_state = ROTARY_ENCODER_SW_NA;
     return sw_state;
 }
 
-uint8_t rotary_encoder_2_fetch_sw_state(void)
+void static rotary_encoder_callback(uint gpio, __unused uint32_t events, rotary_encoder *re)
 {
-    const uint8_t sw_state = rotary_encoder_2_sw_state;
-    rotary_encoder_2_sw_state = ROTARY_ENCODER_SW_NA;
-    return sw_state;
-}
-
-void static rotary_encoder_callback(uint gpio, __unused uint32_t events, const uint PIN_A, const uint PIN_B, const uint PIN_SW, uint8_t volatile *a_b_trial, int32_t volatile *counter, uint8_t volatile *sw_trial, uint8_t volatile *sw_state)
-{
-    if (gpio == PIN_A || gpio == PIN_B)
+    if (gpio == re->a || gpio == re->b)
     {
-        *a_b_trial = (((*a_b_trial) << 2) | (gpio_get(PIN_A) << 1) | gpio_get(PIN_B)) & 0xf;
+        re->a_b_trail = ((re->a_b_trail << 2) | (gpio_get(re->a) << 1) | gpio_get(re->b)) & 0xf;
 
-        switch (*a_b_trial)
+        switch (re->a_b_trail)
         {
         case 0b0001:
         case 0b0111:
         case 0b1110:
         case 0b1000:
             // clockwise
-            (*counter)++;
+            (re->counter)++;
             break;
         case 0b0010:
         case 0b1011:
         case 0b1101:
         case 0b0100:
             // counter clockwise
-            (*counter)--;
+            (re->counter)--;
             break;
         }
     }
 
-    if (gpio == PIN_SW)
+    if (gpio == re->sw)
     {
-        *sw_trial = (((*sw_trial) << 1) | gpio_get(PIN_SW)) & 0b11;
-        switch (*sw_trial)
+        re->sw_trail = ((re->sw_trail << 1) | gpio_get(re->sw)) & 0b11;
+        switch (re->sw_trail)
         {
         case 0b01:
-            *sw_state = ROTARY_ENCODER_SW_PRESSED;
+            re->sw_state = ROTARY_ENCODER_SW_PRESSED;
             break;
         case 0b10:
-            *sw_state = ROTARY_ENCODER_SW_RELEASED;
+            re->sw_state = ROTARY_ENCODER_SW_RELEASED;
             break;
         }
     }
 }
+
 // isr for the rotary encoder
 void rotary_encoders_callback(uint gpio, __unused uint32_t events)
 {
-    rotary_encoder_callback(gpio, events, ROTARY_ENCODER_1_A_PIN, ROTARY_ENCODER_1_B_PIN, ROTARY_ENCODER_1_SW_PIN, &rotary_encoder_1_a_b_trail, &rotary_encoder_1_counter, &rotary_encoder_1_sw_trail, &rotary_encoder_1_sw_state);
-    rotary_encoder_callback(gpio, events, ROTARY_ENCODER_2_A_PIN, ROTARY_ENCODER_2_B_PIN, ROTARY_ENCODER_2_SW_PIN, &rotary_encoder_2_a_b_trail, &rotary_encoder_2_counter, &rotary_encoder_2_sw_trail, &rotary_encoder_2_sw_state);
+    for (int i = 0; i < NUM_ROTARY_ENCODERS; i++)
+    {
+        rotary_encoder_callback(gpio, events, &rotary_encoders[i]);
+    }
 }
 
-void configure_rotary_encoder(void)
+void static configure_rotary_encoder(rotary_encoder *re)
 {
     // configure the rotary encoder pins
-    gpio_init(ROTARY_ENCODER_1_A_PIN);
-    gpio_set_dir(ROTARY_ENCODER_1_A_PIN, GPIO_IN);
-    gpio_pull_up(ROTARY_ENCODER_1_A_PIN);
+    gpio_init(re->a);
+    gpio_set_dir(re->a, GPIO_IN);
+    gpio_pull_up(re->a);
 
-    gpio_init(ROTARY_ENCODER_1_B_PIN);
-    gpio_set_dir(ROTARY_ENCODER_1_B_PIN, GPIO_IN);
-    gpio_pull_up(ROTARY_ENCODER_1_B_PIN);
+    gpio_init(re->b);
+    gpio_set_dir(re->b, GPIO_IN);
+    gpio_pull_up(re->b);
 
-    gpio_init(ROTARY_ENCODER_1_SW_PIN);
-    gpio_set_dir(ROTARY_ENCODER_1_SW_PIN, GPIO_IN);
-    gpio_pull_up(ROTARY_ENCODER_1_SW_PIN);
-
-    gpio_init(ROTARY_ENCODER_2_A_PIN);
-    gpio_set_dir(ROTARY_ENCODER_2_A_PIN, GPIO_IN);
-    gpio_pull_up(ROTARY_ENCODER_2_A_PIN);
-
-    gpio_init(ROTARY_ENCODER_2_B_PIN);
-    gpio_set_dir(ROTARY_ENCODER_2_B_PIN, GPIO_IN);
-    gpio_pull_up(ROTARY_ENCODER_2_B_PIN);
-
-    gpio_init(ROTARY_ENCODER_2_SW_PIN);
-    gpio_set_dir(ROTARY_ENCODER_2_SW_PIN, GPIO_IN);
-    gpio_pull_up(ROTARY_ENCODER_2_SW_PIN);
+    gpio_init(re->sw);
+    gpio_set_dir(re->sw, GPIO_IN);
+    gpio_pull_up(re->sw);
 
     // configure the interrupt for the rotary encoder
-    gpio_set_irq_enabled_with_callback(ROTARY_ENCODER_1_A_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
-    gpio_set_irq_enabled_with_callback(ROTARY_ENCODER_1_B_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
-    gpio_set_irq_enabled_with_callback(ROTARY_ENCODER_1_SW_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
+    gpio_set_irq_enabled_with_callback(re->a, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
+    gpio_set_irq_enabled_with_callback(re->b, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
+    gpio_set_irq_enabled_with_callback(re->sw, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
+}
 
-    gpio_set_irq_enabled_with_callback(ROTARY_ENCODER_2_A_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
-    gpio_set_irq_enabled_with_callback(ROTARY_ENCODER_2_B_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
-    gpio_set_irq_enabled_with_callback(ROTARY_ENCODER_2_SW_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
+void configure_rotary_encoders(void)
+{
+    for (int i = 0; i < NUM_ROTARY_ENCODERS; i++)
+    {
+        configure_rotary_encoder(&rotary_encoders[i]);
+    }
 
     // read the initial state of the rotary encoder
-    rotary_encoder_1_a_b_trail = ((gpio_get(ROTARY_ENCODER_1_A_PIN) << 1) | gpio_get(ROTARY_ENCODER_1_B_PIN)) & 0xf;
-    rotary_encoder_1_sw_trail = (gpio_get(ROTARY_ENCODER_1_SW_PIN)) & 0b11;
-
-    rotary_encoder_2_a_b_trail = ((gpio_get(ROTARY_ENCODER_2_A_PIN) << 1) | gpio_get(ROTARY_ENCODER_2_B_PIN)) & 0xf;
-    rotary_encoder_2_sw_trail = (gpio_get(ROTARY_ENCODER_2_SW_PIN)) & 0b11;
+    for (int i = 0; i < NUM_ROTARY_ENCODERS; i++)
+    {
+        rotary_encoders[i].a_b_trail = ((gpio_get(rotary_encoders[i].a) << 1) | gpio_get(rotary_encoders[i].b)) & 0xf;
+        rotary_encoders[i].sw_trail = (gpio_get(rotary_encoders[i].sw)) & 0b11;
+    }
 }
