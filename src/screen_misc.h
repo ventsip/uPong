@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hardware/dma.h"
+#include <cmath>
 
 #include "fonts.h"
 #include "screen_defs.h"
@@ -14,8 +15,19 @@ static inline void clear_screen()
 
 static int scr_dma_channel = -1;
 
+uint8_t gamma8_lookup[256];
+static void screen_set_gamma(float gamma)
+{
+    for (int i = 0; i < 256; i++)
+    {
+        gamma8_lookup[i] = (uint8_t)(powf((float)i / 255.0f, gamma) * 255.0f + 0.5f);
+    }
+}
+
 void screen_init()
 {
+    screen_set_gamma(2.8);
+
     clear_screen();
 
     scr_dma_channel = dma_claim_unused_channel(true);
@@ -55,6 +67,20 @@ static void inline reverse_copy_pixels_to_led_colors(led_color_t *led_colors, co
 // the screen buffer is assumed to be in the same format as the led_colors buffer
 static void screen_to_led_colors()
 {
+
+    // apply gamma correction
+    for (int y = 0; y < SCREEN_HEIGHT; y++)
+    {
+        for (int x = 0; x < SCREEN_WIDTH; x++)
+        {
+            led_color_t *pixel = &scr_screen[y][x];
+            pixel->r = gamma8_lookup[pixel->r];
+            pixel->g = gamma8_lookup[pixel->g];
+            pixel->b = gamma8_lookup[pixel->b];
+        }
+    }
+
+    // copy the screen buffer to the led_colors buffer
     for (int y = 0, inv_y = SCREEN_HEIGHT - 1; y < SCREEN_HEIGHT; y++, inv_y--)
     {
         led_color_t *pixel = (led_color_t *)(scr_screen[y]);
