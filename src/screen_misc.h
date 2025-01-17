@@ -65,18 +65,20 @@ static void inline reverse_copy_pixels_to_led_colors(led_color_t *led_colors, co
 // | S0M0 | S1M0 | S2M0 |
 // ----------------------
 // the screen buffer is assumed to be in the same format as the led_colors buffer
-static void screen_to_led_colors()
+static void screen_to_led_colors(const bool gamma_correction = true)
 {
-
     // apply gamma correction
-    for (int y = 0; y < SCREEN_HEIGHT; y++)
+    if (gamma_correction)
     {
-        for (int x = 0; x < SCREEN_WIDTH; x++)
+        for (int y = 0; y < SCREEN_HEIGHT; y++)
         {
-            led_color_t *pixel = &scr_screen[y][x];
-            pixel->r = gamma8_lookup[pixel->r];
-            pixel->g = gamma8_lookup[pixel->g];
-            pixel->b = gamma8_lookup[pixel->b];
+            for (int x = 0; x < SCREEN_WIDTH; x++)
+            {
+                led_color_t *pixel = &scr_screen[y][x];
+                pixel->r = gamma8_lookup[pixel->r];
+                pixel->g = gamma8_lookup[pixel->g];
+                pixel->b = gamma8_lookup[pixel->b];
+            }
         }
     }
 

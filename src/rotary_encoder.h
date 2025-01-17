@@ -15,15 +15,14 @@ typedef struct
 
 enum
 {
-    ROTARY_ENCODER_SW_NA = 0,
-    ROTARY_ENCODER_SW_RELEASED,
+    ROTARY_ENCODER_SW_RELEASED = 0,
     ROTARY_ENCODER_SW_PRESSED,
 };
 
 #define NUM_ROTARY_ENCODERS 2
 rotary_encoder rotary_encoders[] = {
-    {22, 26, 27, 0, 0, 0, ROTARY_ENCODER_SW_NA},
-    {19, 20, 21, 0, 0, 0, ROTARY_ENCODER_SW_NA},
+    {22, 26, 27, 0, 0, 0, ROTARY_ENCODER_SW_RELEASED},
+    {19, 20, 21, 0, 0, 0, ROTARY_ENCODER_SW_RELEASED},
 };
 
 int32_t rotary_encoder_fetch_counter(rotary_encoder *re)
@@ -35,9 +34,7 @@ int32_t rotary_encoder_fetch_counter(rotary_encoder *re)
 
 uint8_t rotary_encoder_fetch_sw_state(rotary_encoder *re)
 {
-    const uint8_t sw_state = re->sw_state;
-    re->sw_state = ROTARY_ENCODER_SW_NA;
-    return sw_state;
+    return re->sw_state;
 }
 
 void static rotary_encoder_callback(uint gpio, __unused uint32_t events, rotary_encoder *re)
@@ -70,10 +67,10 @@ void static rotary_encoder_callback(uint gpio, __unused uint32_t events, rotary_
         re->sw_trail = ((re->sw_trail << 1) | gpio_get(re->sw)) & 0b11;
         switch (re->sw_trail)
         {
-        case 0b01:
+        case 0b10:
             re->sw_state = ROTARY_ENCODER_SW_PRESSED;
             break;
-        case 0b10:
+        case 0b01:
             re->sw_state = ROTARY_ENCODER_SW_RELEASED;
             break;
         }

@@ -48,6 +48,8 @@ int main()
     int counter = 0;
     int32_t rotary_1_pos = 0;
     int32_t rotary_2_pos = 0;
+    uint8_t sw_1_state = ROTARY_ENCODER_SW_RELEASED;
+    // uint8_t sw_2_state = ROTARY_ENCODER_SW_RELEASED;
     const unsigned int base_brightness = 32;
     unsigned int brightness = base_brightness;
     int frame = 0;
@@ -100,7 +102,7 @@ int main()
 
         // convert the screen buffer to led colors
         start_time = get_absolute_time();
-        screen_to_led_colors();
+        screen_to_led_colors(sw_1_state == ROTARY_ENCODER_SW_RELEASED);
         int64_t time_screen_to_led_colors = absolute_time_diff_us(start_time, get_absolute_time());
 
         // led_pattern_2(counter, brightness);
@@ -124,16 +126,16 @@ int main()
 #endif
         int32_t rotary_1_delta = rotary_encoder_fetch_counter(&rotary_encoders[0]);
         rotary_1_pos += rotary_1_delta;
-        // uint8_t sw_1_state = rotary_encoder_fetch_sw_state(&rotary_encoders[0]);
+        sw_1_state = rotary_encoder_fetch_sw_state(&rotary_encoders[0]);
 
         int32_t rotary_2_delta = rotary_encoder_fetch_counter(&rotary_encoders[1]);
         rotary_2_pos += rotary_2_delta;
         brightness = (base_brightness + rotary_2_pos / 4) % 256;
-        // uint8_t sw_2_state = rotary_encoder_fetch_sw_state(&rotary_encoders[1]);
+        // sw_2_state = rotary_encoder_fetch_sw_state(&rotary_encoders[1]);
 
         // printf("rotary_1_pos %06ld ", rotary_1_pos);
         // printf("(counter_1_diff %03ld); ", rotary_1_delta);
-        // printf("sw_1_state %d; ", sw_1_state);
+        printf("sw_1_state %d; ", sw_1_state);
         // printf("rotary_2_pos %06ld ", rotary_2_pos);
         // printf("(counter_2_diff %03ld); ", rotary_2_delta);
         // printf("sw_2_state %d; ", sw_2_state);
