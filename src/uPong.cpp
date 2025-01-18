@@ -10,6 +10,7 @@
 #include "uPong_tests.h"
 #include "ws2812_misc.h"
 
+
 // Initialize the GPIO for the LED
 void status_led_init(void)
 {
@@ -37,8 +38,7 @@ int main()
     stdio_init_all();
     status_led_init();
 
-    WS2812_init();
-    screen_init();
+    screen::screen_init();
 
     configure_rotary_encoders();
 

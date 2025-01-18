@@ -3,6 +3,8 @@
 #include "ws2812_misc.h"
 #include <math.h>
 
+using namespace screen;
+
 int unit_tests()
 {
 #ifdef WS2812_PARALLEL
@@ -31,7 +33,7 @@ void led_pattern_1(int counter, uint8_t brightness)
     clear_led_colors();
     for (int s = 0; s < NMB_STRIPS; s++)
     {
-        for (int l = 0; l < LEDS_PER_STRIP; l++)
+        for (auto l = 0; l < LEDS_PER_STRIP; l++)
         {
             int color = (counter + l * 64) % (256 + 256 + 256);
             uint8_t red = (color >= 0 && color < 256) ? brightness : 0;
