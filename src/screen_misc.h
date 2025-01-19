@@ -89,9 +89,25 @@ namespace screen
             }
         }
 
+        // // apply some dithering
+        // static led_color_t e[SCREEN_HEIGHT][SCREEN_WIDTH], v[SCREEN_HEIGHT][SCREEN_WIDTH];
+        // for (int y = 0; y < SCREEN_HEIGHT; y++)
+        // {
+        //     for (int x = 0; x < SCREEN_WIDTH; x++)
+        //     {
+        //         v[y][x].r = (scr_screen[y][x].r + e[y][x].r) >> 1;
+        //         v[y][x].g = (scr_screen[y][x].g + e[y][x].g) >> 1;
+        //         v[y][x].b = (scr_screen[y][x].b + e[y][x].b) >> 1;
+        //         e[y][x].r = (scr_screen[y][x].r + e[y][x].r) - (v[y][x].r << 1);
+        //         e[y][x].g = (scr_screen[y][x].g + e[y][x].g) - (v[y][x].g << 1);
+        //         e[y][x].b = (scr_screen[y][x].b + e[y][x].b) - (v[y][x].b << 1);
+        //     }
+        // }
+
         // copy the screen buffer to the led_colors buffer
         for (int y = 0, inv_y = SCREEN_HEIGHT - 1; y < SCREEN_HEIGHT; y++, inv_y--)
         {
+            // led_color_t *pixel = (led_color_t *)(v[y]);
             led_color_t *pixel = (led_color_t *)(scr_screen[y]);
             led_color_t *led = (led_color_t *)led_colors + inv_y * LED_MATRIX_WIDTH;
 
