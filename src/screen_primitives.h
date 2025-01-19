@@ -1,12 +1,12 @@
 #pragma once
 
 #include "fonts.h"
-#include "screen_misc.h"
+#include "screen.hpp"
 #include "ws2812.hpp"
 
 namespace screen
 {
-    static inline void set_pixel(const int x, const int y, const led_color_t c)
+    static inline void set_pixel(const int x, const int y, const ws2812::led_color_t c)
     {
         if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
         {
@@ -14,7 +14,7 @@ namespace screen
         }
     }
 
-    static inline void draw_vertical_line(const int x, int y0, int y1, const led_color_t c)
+    static inline void draw_vertical_line(const int x, int y0, int y1, const ws2812::led_color_t c)
     {
         if (x < 0 || x >= SCREEN_WIDTH)
         {
@@ -44,7 +44,7 @@ namespace screen
         }
     }
 
-    static inline void draw_horizontal_line(const int y, int x0, int x1, const led_color_t c)
+    static inline void draw_horizontal_line(const int y, int x0, int x1, const ws2812::led_color_t c)
     {
         if (y < 0 || y >= SCREEN_HEIGHT)
         {
@@ -74,7 +74,7 @@ namespace screen
         }
     }
 
-    static void draw_line(int x0, int y0, int x1, int y1, const led_color_t c)
+    static void draw_line(int x0, int y0, int x1, int y1, const ws2812::led_color_t c)
     {
         if (x0 == x1)
         {
@@ -173,7 +173,7 @@ namespace screen
         return;
     }
 
-    static inline void draw_transparent_rect(int x, int y, int w, int h, const led_color_t c, const uint8_t alpha)
+    static inline void draw_transparent_rect(int x, int y, int w, int h, const ws2812::led_color_t c, const uint8_t alpha)
     {
         // fix coordinates to be within the screen
         if (x < 0)
@@ -206,7 +206,7 @@ namespace screen
         for (int i = 0; i < h; i++)
         {
             const uint8_t anti_alpha = 255 - alpha;
-            led_color_t *p = &scr_screen[y + i][x];
+            ws2812::led_color_t *p = &scr_screen[y + i][x];
 
             for (int j = 0; j < w; j++)
             {
@@ -220,7 +220,7 @@ namespace screen
 
     // draw a 3x5 char at the specified position
     // x and y are considered to be the top left corner of the character
-    void draw_3x5_char(const char ch, const int x, int y, const led_color_t c)
+    void draw_3x5_char(const char ch, const int x, int y, const ws2812::led_color_t c)
     {
         const uint8_t *font_char = font_3x5_missing_char;
         int font_char_column = 0;
@@ -266,7 +266,7 @@ namespace screen
         }
     }
 
-    void draw_3x5_string(const char *str, const int x, const int y, const led_color_t c)
+    void draw_3x5_string(const char *str, const int x, const int y, const ws2812::led_color_t c)
     {
         for (int i = 0; str[i] != '\0'; i++)
         {
@@ -274,7 +274,7 @@ namespace screen
         }
     }
 
-    void draw_3x5_number(const uint number, const int x, const int y, const led_color_t c)
+    void draw_3x5_number(const uint number, const int x, const int y, const ws2812::led_color_t c)
     {
         char buffer[16];
         snprintf(buffer, sizeof(buffer), "%u", number);

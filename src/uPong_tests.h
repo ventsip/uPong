@@ -9,20 +9,20 @@ using namespace screen;
 int unit_tests()
 {
 #ifdef WS2812_PARALLEL
-    led_color_t colors[NMB_STRIPS * LEDS_PER_STRIP];
+    ws2812::led_color_t colors[ws2812::NMB_STRIPS * ws2812::LEDS_PER_STRIP];
     // initialize colors with random values
-    for (int i = 0; i < NMB_STRIPS * LEDS_PER_STRIP; i++)
+    for (int i = 0; i < ws2812::NMB_STRIPS * ws2812::LEDS_PER_STRIP; i++)
     {
-        colors[i] = (led_color_t){(uint8_t)(rand() % 256), (uint8_t)(rand() % 256), (uint8_t)(rand() % 256), (uint8_t)(rand() % 256)};
+        colors[i] = (ws2812::led_color_t){(uint8_t)(rand() % 256), (uint8_t)(rand() % 256), (uint8_t)(rand() % 256), (uint8_t)(rand() % 256)};
     }
-    led_bit_planes_t bitplane_s[LEDS_PER_STRIP];
-    led_colors_to_bitplanes_standard(bitplane_s, colors);
+    ws2812::led_bit_planes_t bitplane_s[ws2812::LEDS_PER_STRIP];
+    ws2812::led_colors_to_bitplanes_standard(bitplane_s, colors);
 
-    led_bit_planes_t bitplane[LEDS_PER_STRIP];
-    led_colors_to_bitplanes(bitplane, colors);
+    ws2812::led_bit_planes_t bitplane[ws2812::LEDS_PER_STRIP];
+    ws2812::led_colors_to_bitplanes(bitplane, colors);
 
     // compare the two bit planes
-    int ret = memcmp(bitplane_s, bitplane, LEDS_PER_STRIP);
+    int ret = memcmp(bitplane_s, bitplane, ws2812::LEDS_PER_STRIP);
     return ret == 0;
 #endif
     // todo
@@ -31,20 +31,20 @@ int unit_tests()
 
 void led_pattern_1(int counter, uint8_t brightness)
 {
-    clear_led_colors();
-    for (int s = 0; s < NMB_STRIPS; s++)
+    ws2812::clear_led_colors();
+    for (int s = 0; s < ws2812::NMB_STRIPS; s++)
     {
-        for (auto l = 0; l < LEDS_PER_STRIP; l++)
+        for (auto l = 0; l < ws2812::LEDS_PER_STRIP; l++)
         {
             int color = (counter + l * 64) % (256 + 256 + 256);
             uint8_t red = (color >= 0 && color < 256) ? brightness : 0;
             uint8_t green = (color >= 256 && color < 256 + 256) ? brightness : 0;
             uint8_t blue = (color >= 256 + 256 && color < 256 + 256 + 256) ? brightness : 0;
 #ifdef WS2812_PARALLEL
-            led_colors[s][l] = ws2812_pack_color(red, green, blue);
+            ws2812::led_colors[s][l] = ws2812_pack_color(red, green, blue);
 #endif
 #ifdef WS2812_SINGLE
-            (*led_colors)[s][l] = ws2812_pack_color(red, green, blue);
+            (*ws2812::led_colors)[s][l] = ws2812_pack_color(red, green, blue);
 #endif
         };
     }
@@ -52,10 +52,10 @@ void led_pattern_1(int counter, uint8_t brightness)
 
 void led_pattern_2(int counter, int brightness)
 {
-    clear_led_colors();
-    int led = counter % LEDS_PER_STRIP;
+    ws2812::clear_led_colors();
+    int led = counter % ws2812::LEDS_PER_STRIP;
 
-    for (int strip = 0; strip < NMB_STRIPS; strip++)
+    for (int strip = 0; strip < ws2812::NMB_STRIPS; strip++)
     {
         int red = (strip == 0) ? brightness : 0;
         int green = (strip == 1) ? brightness : 0;
@@ -64,10 +64,10 @@ void led_pattern_2(int counter, int brightness)
         for (int i = 1; i <= 8; ++i)
         {
 #ifdef WS2812_PARALLEL
-            led_colors[strip][(led + LEDS_PER_STRIP - i) % LEDS_PER_STRIP] = ws2812_pack_color(red / i, green / i, blue / i);
+            ws2812::led_colors[strip][(led + ws2812::LEDS_PER_STRIP - i) % ws2812::LEDS_PER_STRIP] = ws2812_pack_color(red / i, green / i, blue / i);
 #endif
 #ifdef WS2812_SINGLE
-            (*led_colors)[strip][(led + LEDS_PER_STRIP - i) % LEDS_PER_STRIP] = ws2812_pack_color(red / i, green / i, blue / i);
+            (*ws2812::led_colors)[strip][(led + ws2812::LEDS_PER_STRIP - i) % ws2812::LEDS_PER_STRIP] = ws2812_pack_color(red / i, green / i, blue / i);
 #endif
         }
     }
@@ -198,18 +198,18 @@ void screen_pattern_color_matrices()
 {
     for (int i = 0; i < 256; i++)
     {
-        set_pixel(i % LED_MATRIX_WIDTH, i / LED_MATRIX_HEIGHT, ws2812_pack_color(0, i, 0));
-        set_pixel(i % LED_MATRIX_WIDTH + LED_MATRIX_WIDTH, i / LED_MATRIX_HEIGHT, ws2812_pack_color(i, 0, 0));
-        set_pixel(i % LED_MATRIX_WIDTH + LED_MATRIX_WIDTH + LED_MATRIX_WIDTH, i / LED_MATRIX_HEIGHT, ws2812_pack_color(0, 0, i));
-        set_pixel(i % LED_MATRIX_WIDTH + LED_MATRIX_WIDTH, i / LED_MATRIX_HEIGHT + LED_MATRIX_HEIGHT, ws2812_pack_color(i, i, i));
+        set_pixel(i % ws2812::LED_MATRIX_WIDTH, i / ws2812::LED_MATRIX_HEIGHT, ws2812_pack_color(0, i, 0));
+        set_pixel(i % ws2812::LED_MATRIX_WIDTH + ws2812::LED_MATRIX_WIDTH, i / ws2812::LED_MATRIX_HEIGHT, ws2812_pack_color(i, 0, 0));
+        set_pixel(i % ws2812::LED_MATRIX_WIDTH + ws2812::LED_MATRIX_WIDTH + ws2812::LED_MATRIX_WIDTH, i / ws2812::LED_MATRIX_HEIGHT, ws2812_pack_color(0, 0, i));
+        set_pixel(i % ws2812::LED_MATRIX_WIDTH + ws2812::LED_MATRIX_WIDTH, i / ws2812::LED_MATRIX_HEIGHT + ws2812::LED_MATRIX_HEIGHT, ws2812_pack_color(i, i, i));
     }
 }
 
 void screen_pattern_three_pixels()
 {
     set_pixel(0, SCREEN_HEIGHT - 1, ws2812_pack_color(0, 0, 0));
-    set_pixel(LED_MATRIX_WIDTH, SCREEN_HEIGHT - 1, ws2812_pack_color(128, 128, 128));
-    set_pixel(2 * LED_MATRIX_WIDTH, SCREEN_HEIGHT - 1, ws2812_pack_color(255, 255, 255));
+    set_pixel(ws2812::LED_MATRIX_WIDTH, SCREEN_HEIGHT - 1, ws2812_pack_color(128, 128, 128));
+    set_pixel(2 * ws2812::LED_MATRIX_WIDTH, SCREEN_HEIGHT - 1, ws2812_pack_color(255, 255, 255));
 }
 
 void screen_pattern_lines_1(absolute_time_t, int counter, int brightness)
@@ -240,30 +240,30 @@ void screen_pattern_scroll_text(absolute_time_t, int counter, int brightness)
 
 void screen_pattern_color_squares(absolute_time_t, __unused int counter, int brightness)
 {
-    for (int y = 0; y < LED_MATRIX_HEIGHT; y++)
+    for (int y = 0; y < ws2812::LED_MATRIX_HEIGHT; y++)
     {
-        for (int x = 0; x < LED_MATRIX_WIDTH; x++)
+        for (int x = 0; x < ws2812::LED_MATRIX_WIDTH; x++)
         {
             set_pixel(x,
                       y,
-                      ws2812_pack_color((LED_MATRIX_WIDTH - x - 1) * brightness / LED_MATRIX_WIDTH,
-                                        (LED_MATRIX_HEIGHT - y - 1) * brightness / LED_MATRIX_HEIGHT,
+                      ws2812_pack_color((ws2812::LED_MATRIX_WIDTH - x - 1) * brightness / ws2812::LED_MATRIX_WIDTH,
+                                        (ws2812::LED_MATRIX_HEIGHT - y - 1) * brightness / ws2812::LED_MATRIX_HEIGHT,
                                         0));
             set_pixel(x,
-                      y + LED_MATRIX_HEIGHT,
-                      ws2812_pack_color((LED_MATRIX_WIDTH - x - 1) * brightness / LED_MATRIX_WIDTH,
+                      y + ws2812::LED_MATRIX_HEIGHT,
+                      ws2812_pack_color((ws2812::LED_MATRIX_WIDTH - x - 1) * brightness / ws2812::LED_MATRIX_WIDTH,
                                         0,
-                                        y * brightness / LED_MATRIX_HEIGHT));
-            set_pixel(x + LED_MATRIX_WIDTH,
+                                        y * brightness / ws2812::LED_MATRIX_HEIGHT));
+            set_pixel(x + ws2812::LED_MATRIX_WIDTH,
                       y,
                       ws2812_pack_color(0,
-                                        (LED_MATRIX_HEIGHT - y - 1) * brightness / LED_MATRIX_HEIGHT,
-                                        x * brightness / LED_MATRIX_WIDTH));
-            set_pixel(x + LED_MATRIX_WIDTH,
-                      y + LED_MATRIX_HEIGHT,
+                                        (ws2812::LED_MATRIX_HEIGHT - y - 1) * brightness / ws2812::LED_MATRIX_HEIGHT,
+                                        x * brightness / ws2812::LED_MATRIX_WIDTH));
+            set_pixel(x + ws2812::LED_MATRIX_WIDTH,
+                      y + ws2812::LED_MATRIX_HEIGHT,
                       ws2812_pack_color(0,
                                         0,
-                                        std::min((x + y) * brightness / ((LED_MATRIX_WIDTH + LED_MATRIX_HEIGHT) / 2), brightness)));
+                                        std::min((x + y) * brightness / ((ws2812::LED_MATRIX_WIDTH + ws2812::LED_MATRIX_HEIGHT) / 2), brightness)));
 
             //           set_pixel(x + LED_MATRIX_WIDTH, y, ws2812_pack_color((LED_MATRIX_WIDTH - x - 1) * brightness / LED_MATRIX_WIDTH, y * brightness / LED_MATRIX_HEIGHT, 0));
         }

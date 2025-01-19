@@ -14,28 +14,12 @@ namespace ws2812
 #if WS2812_PIN_BASE >= NUM_BANK0_GPIOS
 #error Attempting to use a pin>=32 on a platform that does not support it
 #endif
-    // three strips
-#if NMB_STRIPS > 8 // max 8 strips
-#error "NMB_STRIPS must be <= 8"
-#endif
-
-#ifdef WS2812_PARALLEL
-#if NMB_STRIPS <= 8
-    typedef uint8_t bit_plane_t; // must be wide enough to contain the number of strips
-#endif
-#define BITS_PER_COLOR_COMPONENT 8
-#define BYTES_PER_WS2812_LED 3
-    typedef struct
-    {
-        bit_plane_t led[BYTES_PER_WS2812_LED][BITS_PER_COLOR_COMPONENT];
-    } led_bit_planes_t;
-#endif
 
 #ifdef WS2812_PARALLEL
     // two bit planes,
     // bit planes are effectively a transposed version of the color values of each led of each strip
     // the two bit planes are used for double buffering
-    static led_bit_planes_t led_strips_bitstream[2][LEDS_PER_STRIP] __attribute__((aligned(4)));
+    led_bit_planes_t led_strips_bitstream[2][LEDS_PER_STRIP] __attribute__((aligned(4)));
     led_color_t led_colors[NMB_STRIPS][LEDS_PER_STRIP] __attribute__((aligned(4)));
     static auto led_colors_size = sizeof(led_colors);
 #endif
@@ -43,7 +27,7 @@ namespace ws2812
     static led_color_t __led_colors[2][NMB_STRIPS][LEDS_PER_STRIP] __attribute__((aligned(4)));
     static int led_colors_active = 0;
     led_color_t (*led_colors)[NMB_STRIPS][LEDS_PER_STRIP] = &(__led_colors[led_colors_active]);
-    static auto led_colors_size = sizeof(__led_colors) / 2;
+    static const auto led_colors_size = sizeof(__led_colors) / 2;
 #endif
 
     void clear_led_colors()
@@ -247,7 +231,7 @@ namespace ws2812
 #endif
 
 #ifdef WS2812_PARALLEL
-    static inline void led_colors_to_bitplanes_standard(
+    void led_colors_to_bitplanes_standard(
         led_bit_planes_t *const bitplane,
         const led_color_t *const colors)
     {
@@ -274,7 +258,7 @@ namespace ws2812
         }
     }
 
-    static inline void led_colors_to_bitplanes(
+    void led_colors_to_bitplanes(
         led_bit_planes_t *const bitplane,
         const led_color_t *const colors)
     {

@@ -37,7 +37,7 @@ int main()
 
     screen::screen_init();
 
-    configure_rotary_encoders();
+    rotary_encoder::configure_rotary_encoders();
 
 #ifdef WS2812_PARALLEL
     int frame_buffer_index = 0;
@@ -45,7 +45,7 @@ int main()
     int counter = 0;
     int32_t rotary_1_pos = 0;
     int32_t rotary_2_pos = 0;
-    uint8_t sw_1_state = ROTARY_ENCODER_SW_RELEASED;
+    uint8_t sw_1_state = rotary_encoder::ROTARY_ENCODER_SW_RELEASED;
     // uint8_t sw_2_state = ROTARY_ENCODER_SW_RELEASED;
     const unsigned int base_brightness = 255;
     unsigned int brightness = base_brightness;
@@ -79,7 +79,7 @@ int main()
             last_time = current_time;
         }
 
-        clear_screen();
+        screen::clear_screen();
 
         // screen_pattern_exploding_circle(current_time, counter, brightness);
         // screen_pattern_running_pixel(current_time, counter, brightness);
@@ -99,7 +99,7 @@ int main()
 
         // convert the screen buffer to led colors
         start_time = get_absolute_time();
-        screen_to_led_colors(sw_1_state == ROTARY_ENCODER_SW_RELEASED);
+        screen::screen_to_led_colors(sw_1_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED);
         int64_t time_screen_to_led_colors = absolute_time_diff_us(start_time, get_absolute_time());
 
         // led_pattern_2(counter, brightness);
@@ -107,24 +107,24 @@ int main()
         // convert the colors to bit planes
         start_time = get_absolute_time();
 #ifdef WS2812_PARALLEL
-        led_colors_to_bitplanes(led_strips_bitstream[frame_buffer_index], (led_color_t *)led_colors);
+        led_colors_to_bitplanes(ws2812::led_strips_bitstream[frame_buffer_index], (ws2812::led_color_t *)ws2812::led_colors);
 #endif
         int64_t time_led_colors_to_bitplanes = absolute_time_diff_us(start_time, get_absolute_time());
         start_time = get_absolute_time();
-        wait_for_led_colors_transmission();
+        ws2812::wait_for_led_colors_transmission();
         int64_t time_wait_for_DMA = absolute_time_diff_us(start_time, get_absolute_time());
 #ifdef WS2812_PARALLEL
-        transmit_led_colors_dma(frame_buffer_index);
+        ws2812::transmit_led_colors_dma(frame_buffer_index);
         frame_buffer_index ^= 1;
 #endif
 #ifdef WS2812_SINGLE
-        transmit_led_colors();
+        ws2812::transmit_led_colors();
 #endif
-        int32_t rotary_1_delta = rotary_encoder_fetch_counter(&rotary_encoders[0]);
+        int32_t rotary_1_delta = rotary_encoder::rotary_encoder_fetch_counter(&rotary_encoder::rotary_encoders[0]);
         rotary_1_pos += rotary_1_delta;
-        sw_1_state = rotary_encoder_fetch_sw_state(&rotary_encoders[0]);
+        sw_1_state = rotary_encoder::rotary_encoder_fetch_sw_state(&rotary_encoder::rotary_encoders[0]);
 
-        int32_t rotary_2_delta = rotary_encoder_fetch_counter(&rotary_encoders[1]);
+        int32_t rotary_2_delta = rotary_encoder::rotary_encoder_fetch_counter(&rotary_encoder::rotary_encoders[1]);
         rotary_2_pos += rotary_2_delta;
         brightness = (base_brightness + rotary_2_pos / 4) % 256;
         // sw_2_state = rotary_encoder_fetch_sw_state(&rotary_encoders[1]);
