@@ -121,7 +121,7 @@ int main()
         frame_buffer_index ^= 1;
 #endif
 #ifdef WS2812_SINGLE
-        output_colors();
+        transmit_led_colors();
 #endif
         int32_t rotary_1_delta = rotary_encoder_fetch_counter(&rotary_encoders[0]);
         rotary_1_pos += rotary_1_delta;

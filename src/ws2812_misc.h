@@ -60,7 +60,7 @@ namespace ws2812
     }
 
 #ifdef WS2812_SINGLE
-    void output_colors()
+    void transmit_led_colors()
     {
         hard_assert(sizeof(sm_mask) / sizeof(uint) == 3);
         // disable all state machines
