@@ -5,7 +5,7 @@
 
 #include "fonts.h"
 #include "screen_defs.h"
-#include "ws2812_misc.h"
+#include "ws2812.hpp"
 
 namespace screen
 {

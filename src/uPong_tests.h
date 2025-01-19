@@ -1,7 +1,8 @@
-#include "screen_primitives.h"
-#include "ws2812_defs.h"
-#include "ws2812_misc.h"
+#pragma once
 #include <math.h>
+
+#include "screen_primitives.h"
+#include "ws2812.hpp"
 
 using namespace screen;
 

@@ -3,12 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define WS2812_SINGLE
-
 #include "rotary_encoder.h"
 #include "screen_primitives.h"
 #include "uPong_tests.h"
-#include "ws2812_misc.h"
+#include "ws2812.hpp"
 
 // Initialize the GPIO for the LED
 void status_led_init(void)
@@ -112,9 +110,8 @@ int main()
         led_colors_to_bitplanes(led_strips_bitstream[frame_buffer_index], (led_color_t *)led_colors);
 #endif
         int64_t time_led_colors_to_bitplanes = absolute_time_diff_us(start_time, get_absolute_time());
-
         start_time = get_absolute_time();
-        sem_acquire_blocking(&ws2812_transmitting_led_colors_sem);
+        wait_for_led_colors_transmission();
         int64_t time_wait_for_DMA = absolute_time_diff_us(start_time, get_absolute_time());
 #ifdef WS2812_PARALLEL
         transmit_led_colors_dma(frame_buffer_index);

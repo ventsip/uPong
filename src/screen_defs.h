@@ -1,7 +1,7 @@
 #pragma once
 #include <string.h>
 
-#include "ws2812_defs.h"
+#include "ws2812.hpp"
 
 namespace screen
 {
