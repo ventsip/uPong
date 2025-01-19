@@ -25,9 +25,6 @@ namespace ws2812
     {
         bit_plane_t led[BYTES_PER_WS2812_LED][BITS_PER_COLOR_COMPONENT];
     } led_bit_planes_t;
-#endif
-
-#ifdef WS2812_PARALLEL
 #pragma pack(push, 1)
     typedef struct
     {
@@ -61,6 +58,7 @@ namespace ws2812
     bool WS2812_init();
     void clear_led_colors();
     void wait_for_led_colors_transmission();
+
 #ifdef WS2812_SINGLE
     void transmit_led_colors();
 #endif
