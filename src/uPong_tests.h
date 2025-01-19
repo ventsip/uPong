@@ -152,9 +152,9 @@ void screen_pattern_frame_rate(absolute_time_t, int, __unused uint8_t brightness
     digits = std::max(digits, 1);
 
     // draw transparent rectangle under the number
-    draw_transparent_rect(SCREEN_WIDTH - digits * 4 - 1, 0, digits * 4 + 1, 7, ws2812_pack_color(0, 0, 0), 128);
+    draw_transparent_rect(SCREEN_WIDTH - digits * 4 - 1, SCREEN_HEIGHT / 2, digits * 4 + 1, 7, ws2812_pack_color(0, 0, 0), 250);
 
-    draw_3x5_number(frame_rate, SCREEN_WIDTH - digits * 4, 1, ws2812_pack_color(32, 32, 32));
+    draw_3x5_number(frame_rate, SCREEN_WIDTH - digits * 4, SCREEN_HEIGHT / 2 + 1, ws2812_pack_color(32, 32, 32));
 }
 
 void screen_pattern_brightness(absolute_time_t, int, uint8_t brightness, __unused int frame_rate)

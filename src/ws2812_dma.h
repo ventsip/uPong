@@ -17,7 +17,7 @@ namespace ws2812
     static unsigned int ws2812_dma_mask = 0;
 
     // posted when it is safe to output a new set of values to ws2812
-    static struct semaphore ws2812_transmitting_sem;
+    static struct semaphore ws2812_transmitting_led_colors_sem;
 
     // alarm handle for handling the ws2812 reset delay
     static alarm_id_t ws2812_reset_alarm_id = 0;
@@ -25,7 +25,7 @@ namespace ws2812
     int64_t ws2812_reset_completed(__unused alarm_id_t id, __unused void *user_data)
     {
         ws2812_reset_alarm_id = 0;
-        sem_release(&ws2812_transmitting_sem);
+        sem_release(&ws2812_transmitting_led_colors_sem);
         // no repeat
         return 0;
     }
@@ -57,7 +57,6 @@ namespace ws2812
 #ifdef WS2812_PARALLEL
     void ws2812_dma_init(PIO pio, uint sm)
     {
-
         ws2812_dma_channel = dma_claim_unused_channel(true);
         ws2812_dma_mask = 1u << ws2812_dma_channel;
 
@@ -68,7 +67,7 @@ namespace ws2812
             ws2812_dma_channel,
             &channel_config,
             &pio->txf[sm],
-            NULL, // set in output_colors_dma
+            NULL, // set in transmit_led_colors_dma
             LEDS_PER_STRIP * sizeof(led_bit_planes_t),
             false);
 
@@ -107,14 +106,13 @@ namespace ws2812
 #endif
 
 #ifdef WS2812_PARALLEL
-    void output_colors_dma(int active_planes)
+    void transmit_led_colors_dma(int active_planes)
     {
-
         dma_channel_hw_addr(ws2812_dma_channel)->al3_read_addr_trig = (uintptr_t)(led_strips_bitstream + active_planes);
     }
 #endif
 #ifdef WS2812_SINGLE
-    void output_colors_dma()
+    void transmit_led_colors_dma()
     {
         uint32_t dma_all_channel_mask = 0;
         for (int i = 0; i < NMB_STRIPS; i++)

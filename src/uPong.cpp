@@ -10,7 +10,6 @@
 #include "uPong_tests.h"
 #include "ws2812_misc.h"
 
-
 // Initialize the GPIO for the LED
 void status_led_init(void)
 {
@@ -50,7 +49,7 @@ int main()
     int32_t rotary_2_pos = 0;
     uint8_t sw_1_state = ROTARY_ENCODER_SW_RELEASED;
     // uint8_t sw_2_state = ROTARY_ENCODER_SW_RELEASED;
-    const unsigned int base_brightness = 32;
+    const unsigned int base_brightness = 255;
     unsigned int brightness = base_brightness;
     int frame = 0;
     int frame_rate = 0;
@@ -115,10 +114,10 @@ int main()
         int64_t time_led_colors_to_bitplanes = absolute_time_diff_us(start_time, get_absolute_time());
 
         start_time = get_absolute_time();
-        sem_acquire_blocking(&ws2812_transmitting_sem);
+        sem_acquire_blocking(&ws2812_transmitting_led_colors_sem);
         int64_t time_wait_for_DMA = absolute_time_diff_us(start_time, get_absolute_time());
 #ifdef WS2812_PARALLEL
-        output_colors_dma(frame_buffer_index);
+        transmit_led_colors_dma(frame_buffer_index);
         frame_buffer_index ^= 1;
 #endif
 #ifdef WS2812_SINGLE

@@ -13,7 +13,7 @@ namespace ws2812
     static PIO pio[NMB_STRIPS];
     static uint sm[NMB_STRIPS];
     static uint offset[NMB_STRIPS];
-    static uint sm_mask = 0;
+    static uint sm_mask[NUM_PIOS];
 #endif
 
     bool WS2812_init()
@@ -28,39 +28,32 @@ namespace ws2812
         auto success = pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_parallel_program, &pio, &sm, &offset, WS2812_PIN_BASE, NMB_STRIPS, true);
         hard_assert(success);
         ws2812_parallel_program_init(pio, sm, offset, WS2812_PIN_BASE, NMB_STRIPS, 800000);
-        sem_init(&ws2812_transmitting_sem, 1, 1); // initially posted so we don't block first time
+        sem_init(&ws2812_transmitting_led_colors_sem, 1, 1); // initially posted so we don't block first time
         ws2812_dma_init(pio, sm);
 
         return success;
 #endif
 #ifdef WS2812_SINGLE
-        // PIO pio[NMB_STRIPS];
-        // uint sm[NMB_STRIPS];
-        // uint offset[NMB_STRIPS];
-
-        // uint sm_mask = 0;
+        for (auto i = 0u; i < NUM_PIOS; i++)
+        {
+            sm_mask[i] = 0;
+        }
 
         auto success = true;
-        for (int i = 0; i < NMB_STRIPS && success; i++)
+        for (auto i = 0; i < NMB_STRIPS && success; i++)
         {
             success = pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_single_program, &pio[i], &sm[i], &offset[i], WS2812_PIN_BASE + i, 1, true);
             hard_assert(success);
             ws2812_single_program_init(pio[i], sm[i], offset[i], WS2812_PIN_BASE + i, 800000);
-            sm_mask |= 1u << sm[i];
+
+            sm_mask[pio_get_index(pio[i])] |= 1u << sm[i];
         }
-        sem_init(&ws2812_transmitting_sem, 1, 1); // initially posted so we don't block first time
+        sem_init(&ws2812_transmitting_led_colors_sem, 1, 1); // initially posted so we don't block first time
         ws2812_dma_init(pio, sm);
 
-        // check if all sms are on the same PIO and synchronize them
-        auto p = pio[0];
-        for (int i = 1; i < NMB_STRIPS; i++)
-        {
-            hard_assert(p == pio[i]);
-        }
-
-        // todo consider using this method instead
-        // pio_enable_sm_multi_mask_in_sync;
-        pio_enable_sm_mask_in_sync(pio[0], sm_mask);
+        // enable all state machines in sync
+        hard_assert(sizeof(sm_mask) / sizeof(uint) == 3);
+        pio_enable_sm_multi_mask_in_sync(pio1, sm_mask[0], sm_mask[1], sm_mask[2]);
 
         return success;
 #endif
@@ -69,10 +62,11 @@ namespace ws2812
 #ifdef WS2812_SINGLE
     void output_colors()
     {
+        hard_assert(sizeof(sm_mask) / sizeof(uint) == 3);
         // disable all state machines
-        pio_set_sm_mask_enabled(pio[0], sm_mask, false);
+        pio_set_sm_multi_mask_enabled(pio1, sm_mask[0], sm_mask[1], sm_mask[2], false);
 
-        output_colors_dma();
+        transmit_led_colors_dma();
 
         bool ready = false;
         while (!ready)
@@ -84,7 +78,8 @@ namespace ws2812
             }
         }
 
-        pio_enable_sm_mask_in_sync(pio[0], sm_mask);
+        // enable all state machines in sync
+        pio_enable_sm_multi_mask_in_sync(pio1, sm_mask[0], sm_mask[1], sm_mask[2]);
     }
 #endif
 
