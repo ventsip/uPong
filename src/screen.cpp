@@ -93,25 +93,29 @@ namespace screen
             }
         }
 
-        // // apply some dithering
-        // static led_color_t e[SCREEN_HEIGHT][SCREEN_WIDTH], v[SCREEN_HEIGHT][SCREEN_WIDTH];
-        // for (int y = 0; y < SCREEN_HEIGHT; y++)
-        // {
-        //     for (int x = 0; x < SCREEN_WIDTH; x++)
-        //     {
-        //         v[y][x].r = (scr_screen[y][x].r + e[y][x].r) >> 1;
-        //         v[y][x].g = (scr_screen[y][x].g + e[y][x].g) >> 1;
-        //         v[y][x].b = (scr_screen[y][x].b + e[y][x].b) >> 1;
-        //         e[y][x].r = (scr_screen[y][x].r + e[y][x].r) - (v[y][x].r << 1);
-        //         e[y][x].g = (scr_screen[y][x].g + e[y][x].g) - (v[y][x].g << 1);
-        //         e[y][x].b = (scr_screen[y][x].b + e[y][x].b) - (v[y][x].b << 1);
-        //     }
-        // }
+        // apply some dithering
+        static ws2812::led_color_t
+            e[SCREEN_HEIGHT][SCREEN_WIDTH],
+            v[SCREEN_HEIGHT][SCREEN_WIDTH];
+        for (int y = 0; y < SCREEN_HEIGHT; y++)
+        {
+            for (int x = 0; x < SCREEN_WIDTH; x++)
+            {
+                v[y][x].r = (scr_screen[y][x].r + e[y][x].r) >> 1;
+                v[y][x].g = (scr_screen[y][x].g + e[y][x].g) >> 1;
+                v[y][x].b = (scr_screen[y][x].b + e[y][x].b) >> 1;
+                e[y][x].r = (scr_screen[y][x].r + e[y][x].r) - (v[y][x].r << 1);
+                e[y][x].g = (scr_screen[y][x].g + e[y][x].g) - (v[y][x].g << 1);
+                e[y][x].b = (scr_screen[y][x].b + e[y][x].b) - (v[y][x].b << 1);
+            }
+        }
+
+        const auto scr = v;
 
         for (int strip_row = 0; strip_row < ws2812::NMB_STRIP_ROWS; strip_row++)
         {
             ws2812::led_color_t *led = (ws2812::led_color_t *)ws2812::led_colors + strip_row * ws2812::NMB_STRIP_COLUMNS * ws2812::LEDS_PER_STRIP;
-            ws2812::led_color_t *pixel = (ws2812::led_color_t *)(scr_screen[SCREEN_HEIGHT - 1 - strip_row * ws2812::LED_MATRIX_HEIGHT]);
+            ws2812::led_color_t *pixel = (ws2812::led_color_t *)(scr[SCREEN_HEIGHT - 1 - strip_row * ws2812::LED_MATRIX_HEIGHT]);
             for (int strip_col = 0; strip_col < ws2812::NMB_STRIP_COLUMNS; strip_col++)
             {
                 for (int matrix_row = 0; matrix_row < ws2812::LED_MATRIX_HEIGHT; matrix_row++)

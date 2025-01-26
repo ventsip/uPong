@@ -1,5 +1,6 @@
 performance log
 
+FPS 129; screen_to_led_colors: 000776 us; led_colors_to_bitplanes: 000000 us; waited DMA to finish 003636 us
 FPS 129; screen_to_led_colors: 000310 us; led_colors_to_bitplanes: 000000 us; waited DMA to finish 004137 us
 FPS 65; screen_to_led_colors: 000190 us; led_colors_to_bitplanes: 000000 us; waited DMA to finish 013277 us
 FPS 65; screen_to_led_colors: 000034 us; led_colors_to_bitplanes: 000000 us; waited DMA to finish 014787 us
