@@ -126,6 +126,8 @@ namespace ws2812
                 LEDS_PER_STRIP,
                 false);
         }
+
+        // irq works with the first channel only
         ws2812_dma_mask |= 1u << ws2812_dma_channels[0];
 
         irq_set_exclusive_handler(DMA_IRQ_0, ws2812_dma_complete_handler);

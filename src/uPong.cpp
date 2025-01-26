@@ -131,7 +131,7 @@ int main()
 
         // printf("rotary_1_pos %06ld ", rotary_1_pos);
         // printf("(counter_1_diff %03ld); ", rotary_1_delta);
-        printf("sw_1_state %d; ", sw_1_state);
+        // printf("sw_1_state %d; ", sw_1_state);
         // printf("rotary_2_pos %06ld ", rotary_2_pos);
         // printf("(counter_2_diff %03ld); ", rotary_2_delta);
         // printf("sw_2_state %d; ", sw_2_state);

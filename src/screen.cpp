@@ -60,6 +60,17 @@ namespace screen
         }
     }
 
+    static void inline forward_copy_pixels_to_led_colors(ws2812::led_color_t *led_colors, const ws2812::led_color_t *pixels, const int n)
+    {
+        // dma_channel_wait_for_finish_blocking(scr_dma_channel);
+        // dma_hw->ch[scr_dma_channel].al2_read_addr = (uint32_t)pixels;
+        // dma_hw->ch[scr_dma_channel].al2_write_addr_trig = (uint32_t)led_colors;
+        for (int i = 0; i < n; i++)
+        {
+            *led_colors++ = *pixels++;
+        }
+    }
+
     // this function copies the screen buffer to the led_colors buffer, following the specific arrangement of the led matrices
     // ----------------------
     // | S0M1 | S1M1 | S2M1 |
@@ -99,24 +110,24 @@ namespace screen
         //     }
         // }
 
-        // copy the screen buffer to the led_colors buffer
-        for (int y = 0, inv_y = SCREEN_HEIGHT - 1; y < SCREEN_HEIGHT; y++, inv_y--)
+        for (int strip_row = 0; strip_row < ws2812::NMB_STRIP_ROWS; strip_row++)
         {
-            // led_color_t *pixel = (led_color_t *)(v[y]);
-            ws2812::led_color_t *pixel = (ws2812::led_color_t *)(scr_screen[y]);
-            ws2812::led_color_t *led = (ws2812::led_color_t *)ws2812::led_colors + inv_y * ws2812::LED_MATRIX_WIDTH;
-
-            for (int strip = 0; strip < ws2812::NMB_STRIPS; ++strip, pixel += ws2812::LED_MATRIX_WIDTH, led += ws2812::LEDS_PER_STRIP)
+            for (int strip_col = 0; strip_col < ws2812::NMB_STRIP_COLUMNS; strip_col++)
             {
-                if (inv_y & 1)
+                for (int matrix_row = 0; matrix_row < ws2812::LED_MATRIX_HEIGHT; matrix_row++)
                 {
-                    reverse_copy_pixels_to_led_colors(led, pixel, ws2812::LED_MATRIX_WIDTH);
-                }
-                else
-                {
-                    dma_channel_wait_for_finish_blocking(scr_dma_channel);
-                    dma_hw->ch[scr_dma_channel].al2_read_addr = (uint32_t)pixel;
-                    dma_hw->ch[scr_dma_channel].al2_write_addr_trig = (uint32_t)led;
+                    ws2812::led_color_t *led = (ws2812::led_color_t *)ws2812::led_colors + (strip_row * ws2812::NMB_STRIP_COLUMNS + strip_col) * ws2812::LEDS_PER_STRIP + matrix_row * ws2812::LED_MATRIX_WIDTH;
+                    const auto screen_y = SCREEN_HEIGHT - 1 - (strip_row * ws2812::LED_MATRIX_HEIGHT + matrix_row);
+                    ws2812::led_color_t *pixel = (ws2812::led_color_t *)(scr_screen[screen_y]) + strip_col * ws2812::LED_MATRIX_WIDTH;
+
+                    if (matrix_row & 1)
+                    {
+                        reverse_copy_pixels_to_led_colors(led, pixel, ws2812::LED_MATRIX_WIDTH);
+                    }
+                    else
+                    {
+                        forward_copy_pixels_to_led_colors(led, pixel, ws2812::LED_MATRIX_WIDTH);
+                    }
                 }
             }
         }

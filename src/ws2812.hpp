@@ -8,8 +8,11 @@ namespace ws2812
 {
     const auto LED_MATRIX_WIDTH = 16;
     const auto LED_MATRIX_HEIGHT = 16;
-    const auto NMB_STRIPS = 3;
-    const auto LED_MATRICES_PER_STRIP = 2;
+    const auto NMB_STRIP_COLUMNS = 3;
+    const auto NMB_STRIP_ROWS = 2;
+    const auto NMB_STRIPS = (NMB_STRIP_COLUMNS * NMB_STRIP_ROWS);
+    const auto LED_MATRICES_PER_STRIP = 1;
+
     const auto LEDS_PER_STRIP = (LED_MATRIX_WIDTH * LED_MATRIX_HEIGHT * LED_MATRICES_PER_STRIP); // two 16x16 matrices per strip
 
 #ifdef WS2812_PARALLEL
