@@ -76,7 +76,7 @@ namespace screen
     // | S0M0 | S1M0 | S2M0 |
     // ----------------------
     // the screen buffer is assumed to be in the same format as the led_colors buffer
-    void screen_to_led_colors(const bool gamma_correction)
+    void screen_to_led_colors(const bool gamma_correction, const bool dithering)
     {
         // apply gamma correction
         if (gamma_correction)
@@ -93,24 +93,29 @@ namespace screen
             }
         }
 
-        // apply some dithering
-        static ws2812::led_color_t
-            e[SCREEN_HEIGHT][SCREEN_WIDTH],
-            v[SCREEN_HEIGHT][SCREEN_WIDTH];
-        for (int y = 0; y < SCREEN_HEIGHT; y++)
-        {
-            for (int x = 0; x < SCREEN_WIDTH; x++)
-            {
-                v[y][x].r = (scr_screen[y][x].r + e[y][x].r) >> 1;
-                v[y][x].g = (scr_screen[y][x].g + e[y][x].g) >> 1;
-                v[y][x].b = (scr_screen[y][x].b + e[y][x].b) >> 1;
-                e[y][x].r = (scr_screen[y][x].r + e[y][x].r) - (v[y][x].r << 1);
-                e[y][x].g = (scr_screen[y][x].g + e[y][x].g) - (v[y][x].g << 1);
-                e[y][x].b = (scr_screen[y][x].b + e[y][x].b) - (v[y][x].b << 1);
-            }
-        }
+        auto scr = scr_screen;
 
-        const auto scr = v;
+        // apply some dithering
+        if (dithering)
+        {
+            static ws2812::led_color_t
+                e[SCREEN_HEIGHT][SCREEN_WIDTH],
+                v[SCREEN_HEIGHT][SCREEN_WIDTH];
+            for (int y = 0; y < SCREEN_HEIGHT; y++)
+            {
+                for (int x = 0; x < SCREEN_WIDTH; x++)
+                {
+                    v[y][x].r = (scr_screen[y][x].r + e[y][x].r) >> 1;
+                    v[y][x].g = (scr_screen[y][x].g + e[y][x].g) >> 1;
+                    v[y][x].b = (scr_screen[y][x].b + e[y][x].b) >> 1;
+                    e[y][x].r = (scr_screen[y][x].r + e[y][x].r) - (v[y][x].r << 1);
+                    e[y][x].g = (scr_screen[y][x].g + e[y][x].g) - (v[y][x].g << 1);
+                    e[y][x].b = (scr_screen[y][x].b + e[y][x].b) - (v[y][x].b << 1);
+                }
+            }
+
+            scr = v;
+        }
 
         for (int strip_row = 0; strip_row < ws2812::NMB_STRIP_ROWS; strip_row++)
         {

@@ -12,5 +12,5 @@ namespace screen
 
     void screen_init();
     void clear_screen();
-    void screen_to_led_colors(const bool gamma_correction = true);
+    void screen_to_led_colors(const bool gamma_correction, const bool dithering);
 }

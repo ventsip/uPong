@@ -46,6 +46,7 @@ int main()
     int32_t rotary_1_pos = 0;
     int32_t rotary_2_pos = 0;
     uint8_t sw_1_state = rotary_encoder::ROTARY_ENCODER_SW_RELEASED;
+    uint8_t sw_2_state = rotary_encoder::ROTARY_ENCODER_SW_RELEASED;
     // uint8_t sw_2_state = ROTARY_ENCODER_SW_RELEASED;
     const unsigned int base_brightness = 255;
     unsigned int brightness = base_brightness;
@@ -99,7 +100,7 @@ int main()
 
         // convert the screen buffer to led colors
         start_time = get_absolute_time();
-        screen::screen_to_led_colors(sw_1_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED);
+        screen::screen_to_led_colors(sw_1_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED, sw_2_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED);
         int64_t time_screen_to_led_colors = absolute_time_diff_us(start_time, get_absolute_time());
 
         // led_pattern_2(counter, brightness);
@@ -123,6 +124,7 @@ int main()
         int32_t rotary_1_delta = rotary_encoder::rotary_encoder_fetch_counter(&rotary_encoder::rotary_encoders[0]);
         rotary_1_pos += rotary_1_delta;
         sw_1_state = rotary_encoder::rotary_encoder_fetch_sw_state(&rotary_encoder::rotary_encoders[0]);
+        sw_2_state = rotary_encoder::rotary_encoder_fetch_sw_state(&rotary_encoder::rotary_encoders[1]);
 
         int32_t rotary_2_delta = rotary_encoder::rotary_encoder_fetch_counter(&rotary_encoder::rotary_encoders[1]);
         rotary_2_pos += rotary_2_delta;
