@@ -112,14 +112,12 @@ namespace screen
 
         for (int strip_row = 0; strip_row < ws2812::NMB_STRIP_ROWS; strip_row++)
         {
+            ws2812::led_color_t *led = (ws2812::led_color_t *)ws2812::led_colors + strip_row * ws2812::NMB_STRIP_COLUMNS * ws2812::LEDS_PER_STRIP;
+            ws2812::led_color_t *pixel = (ws2812::led_color_t *)(scr_screen[SCREEN_HEIGHT - 1 - strip_row * ws2812::LED_MATRIX_HEIGHT]);
             for (int strip_col = 0; strip_col < ws2812::NMB_STRIP_COLUMNS; strip_col++)
             {
                 for (int matrix_row = 0; matrix_row < ws2812::LED_MATRIX_HEIGHT; matrix_row++)
                 {
-                    ws2812::led_color_t *led = (ws2812::led_color_t *)ws2812::led_colors + (strip_row * ws2812::NMB_STRIP_COLUMNS + strip_col) * ws2812::LEDS_PER_STRIP + matrix_row * ws2812::LED_MATRIX_WIDTH;
-                    const auto screen_y = SCREEN_HEIGHT - 1 - (strip_row * ws2812::LED_MATRIX_HEIGHT + matrix_row);
-                    ws2812::led_color_t *pixel = (ws2812::led_color_t *)(scr_screen[screen_y]) + strip_col * ws2812::LED_MATRIX_WIDTH;
-
                     if (matrix_row & 1)
                     {
                         reverse_copy_pixels_to_led_colors(led, pixel, ws2812::LED_MATRIX_WIDTH);
@@ -128,7 +126,10 @@ namespace screen
                     {
                         forward_copy_pixels_to_led_colors(led, pixel, ws2812::LED_MATRIX_WIDTH);
                     }
+                    led += ws2812::LED_MATRIX_WIDTH;
+                    pixel -= SCREEN_WIDTH;
                 }
+                pixel += ws2812::LED_MATRIX_WIDTH + SCREEN_WIDTH * ws2812::LED_MATRIX_HEIGHT;
             }
         }
     }
