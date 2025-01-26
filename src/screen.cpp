@@ -23,6 +23,7 @@ namespace screen
     }
 
     static int scr_dma_channel = -1;
+    const static auto word_multiple = sizeof(ws2812::led_color_t) % 4 == 0;
 
     void screen_init()
     {
@@ -34,9 +35,7 @@ namespace screen
 
         scr_dma_channel = dma_claim_unused_channel(true);
 
-        const auto word_multiple = (sizeof(ws2812::led_color_t) * ws2812::LED_MATRIX_WIDTH) % 4 == 0;
         const dma_channel_transfer_size transfer_size = word_multiple ? DMA_SIZE_32 : DMA_SIZE_8;
-        const auto transfer_count = word_multiple ? ws2812::LED_MATRIX_WIDTH * sizeof(ws2812::led_color_t) / 4 : ws2812::LED_MATRIX_WIDTH * sizeof(ws2812::led_color_t);
 
         dma_channel_config channelConfig = dma_channel_get_default_config(scr_dma_channel);
         channel_config_set_transfer_data_size(&channelConfig, transfer_size);
@@ -47,8 +46,8 @@ namespace screen
             &channelConfig,  // The configuration we just created
             NULL,            // The initial write address
             NULL,            // The initial read address
-            transfer_count,
-            false); // Don't start immediately
+            0,               // Number of transfers; we will set this later
+            false);          // Don't start immediately
     }
 
     static void inline reverse_copy_pixels_to_led_colors(ws2812::led_color_t *led_colors, const ws2812::led_color_t *pixels, const int n)
@@ -62,13 +61,12 @@ namespace screen
 
     static void inline forward_copy_pixels_to_led_colors(ws2812::led_color_t *led_colors, const ws2812::led_color_t *pixels, const int n)
     {
-        // dma_channel_wait_for_finish_blocking(scr_dma_channel);
-        // dma_hw->ch[scr_dma_channel].al2_read_addr = (uint32_t)pixels;
-        // dma_hw->ch[scr_dma_channel].al2_write_addr_trig = (uint32_t)led_colors;
-        for (int i = 0; i < n; i++)
-        {
-            *led_colors++ = *pixels++;
-        }
+        dma_channel_wait_for_finish_blocking(scr_dma_channel);
+
+        const auto transfer_count = word_multiple ? n * sizeof(ws2812::led_color_t) / 4 : n * sizeof(ws2812::led_color_t);
+        dma_hw->ch[scr_dma_channel].al2_transfer_count = transfer_count;
+        dma_hw->ch[scr_dma_channel].al2_read_addr = (uint32_t)pixels;
+        dma_hw->ch[scr_dma_channel].al2_write_addr_trig = (uint32_t)led_colors;
     }
 
     // this function copies the screen buffer to the led_colors buffer, following the specific arrangement of the led matrices
