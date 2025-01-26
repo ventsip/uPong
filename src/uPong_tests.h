@@ -103,7 +103,11 @@ void screen_pattern_exploding_circle(absolute_time_t, int counter, int brightnes
             int dy = y - y0;
             if (dx * dx + dy * dy <= radius * radius)
             {
-                set_pixel(x, y, ws2812_pack_color(brightness * (dx * dx + dy * dy) / (radius * radius), 0, 0));
+                auto b = brightness * (dx * dx + dy * dy) / (radius * radius);
+                if (b > 20)
+                {
+                    set_pixel(x, y, ws2812_pack_color(brightness * (dx * dx + dy * dy) / (radius * radius), 0, 0));
+                }
             }
         }
     }

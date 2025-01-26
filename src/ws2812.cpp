@@ -217,6 +217,7 @@ namespace ws2812
 
         transmit_led_colors_dma();
 
+        // wait until all state machines have non-empty TX FIFOs
         bool ready = false;
         while (!ready)
         {
