@@ -1,11 +1,12 @@
 performance log
 
-FPS 129; screen_to_led_colors: 000776 us; led_colors_to_bitplanes: 000000 us; waited DMA to finish 003636 us
-FPS 129; screen_to_led_colors: 000310 us; led_colors_to_bitplanes: 000000 us; waited DMA to finish 004137 us
-FPS 65; screen_to_led_colors: 000190 us; led_colors_to_bitplanes: 000000 us; waited DMA to finish 013277 us
-FPS 65; screen_to_led_colors: 000034 us; led_colors_to_bitplanes: 000000 us; waited DMA to finish 014787 us
-FPS 65; screen_to_led_colors: 000024 us; led_colors_to_bitplanes: 000001 us; waited DMA to finish 014872 us
-FPS 65; screen_to_led_colors: 000024 us; led_colors_to_bitplanes: 000952 us; waited DMA to finish 013853 us
-FPS 65; screen_to_led_colors: 000028 us; led_colors_to_bitplanes: 001059 us; waited DMA to finish 013782 us
-FPS 65; screen_to_led_colors: 000042 us; led_colors_to_bitplanes: 001053 us; waited DMA to finish 013777 us
-FPS 65; screen_to_led_colors: 000074 us; led_colors_to_bitplanes: 001067 us; waited DMA to finish 013704 us
+FPS 129; gamma_correction: 000238 us; dithering: 000514 us; screen_to_led_colors: 000056 us; led_colors_to_bitplanes: 000000 us; DMA: 003276 us
+FPS 129;                                                    screen_to_led_colors: 000776 us; led_colors_to_bitplanes: 000000 us; DMA: 003636 us
+FPS 129;                                                    screen_to_led_colors: 000310 us; led_colors_to_bitplanes: 000000 us; DMA: 004137 us
+FPS 65;                                                     screen_to_led_colors: 000190 us; led_colors_to_bitplanes: 000000 us; DMA: 013277 us
+FPS 65;                                                     screen_to_led_colors: 000034 us; led_colors_to_bitplanes: 000000 us; DMA: 014787 us
+FPS 65;                                                     screen_to_led_colors: 000024 us; led_colors_to_bitplanes: 000001 us; DMA: 014872 us
+FPS 65;                                                     screen_to_led_colors: 000024 us; led_colors_to_bitplanes: 000952 us; DMA: 013853 us
+FPS 65;                                                     screen_to_led_colors: 000028 us; led_colors_to_bitplanes: 001059 us; DMA: 013782 us
+FPS 65;                                                     screen_to_led_colors: 000042 us; led_colors_to_bitplanes: 001053 us; DMA: 013777 us
+FPS 65;                                                     screen_to_led_colors: 000074 us; led_colors_to_bitplanes: 001067 us; DMA: 013704 us

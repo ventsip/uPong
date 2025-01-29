@@ -118,9 +118,11 @@ int main()
         printf("FPS %d; ", frame_rate);
         // printf("unit tests %s; ", tests ? "passed" : "failed");
         // printf("PIOs/SMs (%ld, %d) (%ld, %d) (%ld, %d); ", (int32_t)pio[0], sm[0], (int32_t)pio[1], sm[1], (int32_t)pio[2], sm[2]);
+        printf("gamma_correction: %06lld us; ", scr_profile.time_gamma_correction);
+        printf("dithering: %06lld us; ", scr_profile.time_dithering);
         printf("screen_to_led_colors: %06lld us; ", scr_profile.time_screen_to_led_colors);
         printf("led_colors_to_bitplanes: %06lld us; ", scr_profile.time_led_colors_to_bitplanes);
-        printf("waited DMA to finish %06lld us", scr_profile.time_wait_for_DMA);
+        printf("DMA: %06lld us", scr_profile.time_wait_for_DMA);
         printf("\n");
         counter++;
         frame++;
