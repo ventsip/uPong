@@ -22,7 +22,7 @@ namespace screen
         memset(scr_screen, 0, sizeof(scr_screen));
     }
 
-    uint8_t gamma8_lookup[256];
+    static uint8_t gamma8_lookup[256];
     static void screen_set_gamma(float gamma)
     {
         for (int i = 0; i < 256; i++)
@@ -120,10 +120,11 @@ namespace screen
     // the screen buffer is assumed to be in the same format as the led_colors buffer
     void screen_to_led_colors(ws2812::led_color_t *scr)
     {
+        ws2812::led_color_t *pixel_base = scr + (SCREEN_HEIGHT - 1) * SCREEN_WIDTH;
         for (int strip_row = 0; strip_row < ws2812::NMB_STRIP_ROWS; strip_row++)
         {
             ws2812::led_color_t *led = (ws2812::led_color_t *)ws2812::led_colors + strip_row * ws2812::NMB_STRIP_COLUMNS * ws2812::LEDS_PER_STRIP;
-            ws2812::led_color_t *pixel = scr + (SCREEN_HEIGHT - 1 - strip_row * ws2812::LED_MATRIX_HEIGHT) * SCREEN_WIDTH;
+            ws2812::led_color_t *pixel = pixel_base - strip_row * ws2812::LED_MATRIX_HEIGHT * SCREEN_WIDTH;
             for (int strip_col = 0; strip_col < ws2812::NMB_STRIP_COLUMNS; strip_col++)
             {
                 for (int matrix_row = 0; matrix_row < ws2812::LED_MATRIX_HEIGHT; matrix_row++)

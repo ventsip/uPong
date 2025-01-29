@@ -97,11 +97,11 @@ int main()
         scr_draw_screen(sw_1_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED, sw_2_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED);
 
         int32_t rotary_1_delta = rotary_encoder::rotary_encoder_fetch_counter(&rotary_encoder::rotary_encoders[0]);
-        rotary_1_pos += rotary_1_delta;
+        rotary_1_pos -= rotary_1_delta;
         sw_1_state = rotary_encoder::rotary_encoder_fetch_sw_state(&rotary_encoder::rotary_encoders[0]);
 
         int32_t rotary_2_delta = rotary_encoder::rotary_encoder_fetch_counter(&rotary_encoder::rotary_encoders[1]);
-        rotary_2_pos += rotary_2_delta;
+        rotary_2_pos -= rotary_2_delta;
         sw_2_state = rotary_encoder::rotary_encoder_fetch_sw_state(&rotary_encoder::rotary_encoders[1]);
 
         brightness = (base_brightness + rotary_2_pos / 4) % 256;
