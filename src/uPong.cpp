@@ -6,7 +6,6 @@
 #include "rotary_encoder.h"
 #include "screen_primitives.h"
 #include "uPong_tests.h"
-#include "ws2812.hpp"
 
 // Initialize the GPIO for the LED
 void status_led_init(void)
@@ -35,13 +34,10 @@ int main()
     stdio_init_all();
     status_led_init();
 
-    screen::screen_init();
+    screen::scr_screen_init();
 
     rotary_encoder::configure_rotary_encoders();
 
-#ifdef WS2812_PARALLEL
-    int frame_buffer_index = 0;
-#endif
     int counter = 0;
     int32_t rotary_1_pos = 0;
     int32_t rotary_2_pos = 0;
@@ -53,7 +49,6 @@ int main()
     int frame = 0;
     int frame_rate = 0;
     absolute_time_t last_time = {0};
-    absolute_time_t start_time = {0};
 
     while (true)
     {
@@ -80,7 +75,7 @@ int main()
             last_time = current_time;
         }
 
-        screen::clear_screen();
+        screen::scr_clear_screen();
 
         // screen_pattern_running_pixel(current_time, counter, brightness);
         // screen_pattern_random_noise(current_time, counter, brightness);
@@ -99,36 +94,16 @@ int main()
         // screen_pattern_three_pixels();
         // screen_pattern_color_matrices();
 
-        // convert the screen buffer to led colors
-        start_time = get_absolute_time();
-        screen::screen_to_led_colors(sw_1_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED, sw_2_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED);
-        int64_t time_screen_to_led_colors = absolute_time_diff_us(start_time, get_absolute_time());
+        scr_draw_screen(sw_1_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED, sw_2_state == rotary_encoder::ROTARY_ENCODER_SW_RELEASED);
 
-        // led_pattern_2(counter, brightness);
-
-        // convert the colors to bit planes
-        start_time = get_absolute_time();
-#ifdef WS2812_PARALLEL
-        led_colors_to_bitplanes(ws2812::led_strips_bitstream[frame_buffer_index], (ws2812::led_color_t *)ws2812::led_colors);
-#endif
-        int64_t time_led_colors_to_bitplanes = absolute_time_diff_us(start_time, get_absolute_time());
-        start_time = get_absolute_time();
-        ws2812::wait_for_led_colors_transmission();
-        int64_t time_wait_for_DMA = absolute_time_diff_us(start_time, get_absolute_time());
-#ifdef WS2812_PARALLEL
-        ws2812::transmit_led_colors_dma(frame_buffer_index);
-        frame_buffer_index ^= 1;
-#endif
-#ifdef WS2812_SINGLE
-        ws2812::transmit_led_colors();
-#endif
         int32_t rotary_1_delta = rotary_encoder::rotary_encoder_fetch_counter(&rotary_encoder::rotary_encoders[0]);
         rotary_1_pos += rotary_1_delta;
         sw_1_state = rotary_encoder::rotary_encoder_fetch_sw_state(&rotary_encoder::rotary_encoders[0]);
-        sw_2_state = rotary_encoder::rotary_encoder_fetch_sw_state(&rotary_encoder::rotary_encoders[1]);
 
         int32_t rotary_2_delta = rotary_encoder::rotary_encoder_fetch_counter(&rotary_encoder::rotary_encoders[1]);
         rotary_2_pos += rotary_2_delta;
+        sw_2_state = rotary_encoder::rotary_encoder_fetch_sw_state(&rotary_encoder::rotary_encoders[1]);
+
         brightness = (base_brightness + rotary_2_pos / 4) % 256;
         // sw_2_state = rotary_encoder_fetch_sw_state(&rotary_encoders[1]);
 
@@ -143,9 +118,9 @@ int main()
         printf("FPS %d; ", frame_rate);
         // printf("unit tests %s; ", tests ? "passed" : "failed");
         // printf("PIOs/SMs (%ld, %d) (%ld, %d) (%ld, %d); ", (int32_t)pio[0], sm[0], (int32_t)pio[1], sm[1], (int32_t)pio[2], sm[2]);
-        printf("screen_to_led_colors: %06lld us; ", time_screen_to_led_colors);
-        printf("led_colors_to_bitplanes: %06lld us; ", time_led_colors_to_bitplanes);
-        printf("waited DMA to finish %06lld us", time_wait_for_DMA);
+        printf("screen_to_led_colors: %06lld us; ", scr_profile.time_screen_to_led_colors);
+        printf("led_colors_to_bitplanes: %06lld us; ", scr_profile.time_led_colors_to_bitplanes);
+        printf("waited DMA to finish %06lld us", scr_profile.time_wait_for_DMA);
         printf("\n");
         counter++;
         frame++;

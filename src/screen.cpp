@@ -2,13 +2,17 @@
 #include <hardware/dma.h>
 
 #include "screen.hpp"
-#include "ws2812.hpp"
+#include <pico/time.h>
 
 namespace screen
 {
     // screen buffer
     ws2812::led_color_t scr_screen[SCREEN_HEIGHT][SCREEN_WIDTH] __attribute__((aligned(4)));
-    void clear_screen()
+
+    // profile
+    volatile scr_profile_t scr_profile;
+
+    void scr_clear_screen()
     {
         memset(scr_screen, 0, sizeof(scr_screen));
     }
@@ -22,32 +26,32 @@ namespace screen
         }
     }
 
-    static int scr_dma_channel = -1;
-    const static auto word_multiple = sizeof(ws2812::led_color_t) % 4 == 0;
+    static int _scr_dma_channel = -1;
+    const static auto _scr_word_multiple = sizeof(ws2812::led_color_t) % 4 == 0;
 
-    void screen_init()
+    void scr_screen_init()
     {
         ws2812::WS2812_init();
 
         screen_set_gamma(2.8);
 
-        clear_screen();
+        scr_clear_screen();
 
-        scr_dma_channel = dma_claim_unused_channel(true);
+        _scr_dma_channel = dma_claim_unused_channel(true);
 
-        const dma_channel_transfer_size transfer_size = word_multiple ? DMA_SIZE_32 : DMA_SIZE_8;
+        const dma_channel_transfer_size transfer_size = _scr_word_multiple ? DMA_SIZE_32 : DMA_SIZE_8;
 
-        dma_channel_config channelConfig = dma_channel_get_default_config(scr_dma_channel);
+        dma_channel_config channelConfig = dma_channel_get_default_config(_scr_dma_channel);
         channel_config_set_transfer_data_size(&channelConfig, transfer_size);
         channel_config_set_read_increment(&channelConfig, true);
         channel_config_set_write_increment(&channelConfig, true);
         dma_channel_configure(
-            scr_dma_channel, // Channel to be configured
-            &channelConfig,  // The configuration we just created
-            NULL,            // The initial write address
-            NULL,            // The initial read address
-            0,               // Number of transfers; we will set this later
-            false);          // Don't start immediately
+            _scr_dma_channel, // Channel to be configured
+            &channelConfig,   // The configuration we just created
+            NULL,             // The initial write address
+            NULL,             // The initial read address
+            0,                // Number of transfers; we will set this later
+            false);           // Don't start immediately
     }
 
     static void inline reverse_copy_pixels_to_led_colors(ws2812::led_color_t *led_colors, const ws2812::led_color_t *pixels, const int n)
@@ -61,12 +65,12 @@ namespace screen
 
     static void inline forward_copy_pixels_to_led_colors(ws2812::led_color_t *led_colors, const ws2812::led_color_t *pixels, const int n)
     {
-        dma_channel_wait_for_finish_blocking(scr_dma_channel);
+        dma_channel_wait_for_finish_blocking(_scr_dma_channel);
 
-        const auto transfer_count = word_multiple ? n * sizeof(ws2812::led_color_t) / 4 : n * sizeof(ws2812::led_color_t);
-        dma_hw->ch[scr_dma_channel].al2_transfer_count = transfer_count;
-        dma_hw->ch[scr_dma_channel].al2_read_addr = (uint32_t)pixels;
-        dma_hw->ch[scr_dma_channel].al2_write_addr_trig = (uint32_t)led_colors;
+        const auto transfer_count = _scr_word_multiple ? n * sizeof(ws2812::led_color_t) / 4 : n * sizeof(ws2812::led_color_t);
+        dma_hw->ch[_scr_dma_channel].al2_transfer_count = transfer_count;
+        dma_hw->ch[_scr_dma_channel].al2_read_addr = (uint32_t)pixels;
+        dma_hw->ch[_scr_dma_channel].al2_write_addr_trig = (uint32_t)led_colors;
     }
 
     // this function copies the screen buffer to the led_colors buffer, following the specific arrangement of the led matrices
@@ -139,5 +143,43 @@ namespace screen
                 pixel += ws2812::LED_MATRIX_WIDTH + SCREEN_WIDTH * ws2812::LED_MATRIX_HEIGHT;
             }
         }
+    }
+
+#define PROFILE_CALL(func, timer)                                       \
+    {                                                                   \
+        absolute_time_t start_time = get_absolute_time();               \
+        func;                                                           \
+        timer = absolute_time_diff_us(start_time, get_absolute_time()); \
+    }
+
+    void scr_draw_screen(const bool gamma_correction, const bool dithering)
+    {
+
+#ifdef WS2812_PARALLEL
+        static int frame_buffer_index = 0;
+#endif
+        // convert the screen buffer to led colors
+        PROFILE_CALL(
+            screen_to_led_colors(gamma_correction, dithering),
+            scr_profile.time_screen_to_led_colors);
+
+        // convert the colors to bit planes
+#ifdef WS2812_PARALLEL
+        PROFILE_CALL(
+            led_colors_to_bitplanes(ws2812::led_strips_bitstream[frame_buffer_index], (ws2812::led_color_t *)ws2812::led_colors),
+            scr_profile.time_led_colors_to_bitplanes);
+#endif
+
+        PROFILE_CALL(
+            ws2812::wait_for_led_colors_transmission(),
+            scr_profile.time_wait_for_DMA);
+
+#ifdef WS2812_PARALLEL
+        ws2812::transmit_led_colors_dma(frame_buffer_index);
+        frame_buffer_index ^= 1;
+#endif
+#ifdef WS2812_SINGLE
+        ws2812::transmit_led_colors();
+#endif
     }
 }
