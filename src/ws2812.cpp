@@ -144,21 +144,6 @@ namespace ws2812
             ->al3_read_addr_trig = (uintptr_t)(led_strips_bitstream + active_planes);
     }
 #endif
-#ifdef WS2812_SINGLE
-    void transmit_led_colors_dma()
-    {
-        uint32_t dma_all_channel_mask = 0;
-        for (int i = 0; i < NMB_STRIPS; i++)
-        {
-            dma_channel_set_read_addr(ws2812_dma_channels[i], __led_colors[led_colors_active][i], false);
-            dma_all_channel_mask |= 1u << ws2812_dma_channels[i];
-        }
-        dma_start_channel_mask(dma_all_channel_mask);
-
-        led_colors_active ^= 1;
-        led_colors = &(__led_colors[led_colors_active]);
-    }
-#endif
 
 #ifdef WS2812_SINGLE
     static PIO pio[NMB_STRIPS];
@@ -219,7 +204,18 @@ namespace ws2812
         // disable all state machines
         pio_set_sm_multi_mask_enabled(pio1, sm_mask[0], sm_mask[1], sm_mask[2], false);
 
-        transmit_led_colors_dma();
+        // configure and start the DMA channels
+        uint32_t dma_all_channel_mask = 0;
+        for (int i = 0; i < NMB_STRIPS; i++)
+        {
+            dma_channel_set_read_addr(ws2812_dma_channels[i], __led_colors[led_colors_active][i], false);
+            dma_all_channel_mask |= 1u << ws2812_dma_channels[i];
+        }
+        dma_start_channel_mask(dma_all_channel_mask);
+
+        // swap the led_colors buffer
+        led_colors_active ^= 1;
+        led_colors = &(__led_colors[led_colors_active]);
 
         // wait until all state machines have non-empty TX FIFOs
         bool ready = false;
