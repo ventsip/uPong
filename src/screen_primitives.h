@@ -10,7 +10,7 @@ namespace screen
     {
         if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
         {
-            scr_screen[y][x] = c;
+            (*scr_screen)[y][x] = c;
         }
     }
 
@@ -40,7 +40,7 @@ namespace screen
         }
         for (int y = y0; y <= y1; y++)
         {
-            scr_screen[y][x] = c;
+            (*scr_screen)[y][x] = c;
         }
     }
 
@@ -70,7 +70,7 @@ namespace screen
         }
         for (int x = x0; x <= x1; x++)
         {
-            scr_screen[y][x] = c;
+            (*scr_screen)[y][x] = c;
         }
     }
 
@@ -206,7 +206,7 @@ namespace screen
         for (int i = 0; i < h; i++)
         {
             const uint8_t anti_alpha = 255 - alpha;
-            ws2812::led_color_t *p = &scr_screen[y + i][x];
+            volatile ws2812::led_color_t *p = &(*scr_screen)[y + i][x];
 
             for (int j = 0; j < w; j++)
             {

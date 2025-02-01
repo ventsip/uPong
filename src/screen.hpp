@@ -8,7 +8,10 @@ namespace screen
     const auto SCREEN_WIDTH = ws2812::LED_MATRIX_WIDTH * 3;
     const auto SCREEN_HEIGHT = ws2812::LED_MATRIX_HEIGHT * 2;
 
-    extern ws2812::led_color_t scr_screen[SCREEN_HEIGHT][SCREEN_WIDTH] __attribute__((aligned(4)));
+    extern bool scr_gamma_correction;
+    extern bool scr_dither;
+
+    extern ws2812::led_color_t (*scr_screen)[SCREEN_HEIGHT][SCREEN_WIDTH];
 
     typedef struct screen
     {
@@ -23,5 +26,5 @@ namespace screen
 
     void scr_screen_init();
     void scr_clear_screen();
-    void scr_draw_screen(const bool gamma, const bool dithering);
+    void scr_screen_swap(const bool gamma, const bool dither); // signal the second core to start drawing the new screen
 }

@@ -130,8 +130,8 @@ namespace ws2812
         // irq works with the first channel only
         ws2812_dma_mask |= 1u << ws2812_dma_channels[0];
 
-        irq_set_exclusive_handler(DMA_IRQ_0, ws2812_dma_complete_handler);
         dma_channel_set_irq0_enabled(ws2812_dma_channels[0], true);
+        irq_set_exclusive_handler(DMA_IRQ_0, ws2812_dma_complete_handler);
         irq_set_enabled(DMA_IRQ_0, true);
     }
 #endif

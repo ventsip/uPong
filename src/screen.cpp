@@ -1,25 +1,33 @@
 #include <cmath>
 #include <hardware/dma.h>
+#include <pico/multicore.h>
+#include <pico/time.h>
 
 #include "screen.hpp"
-#include <pico/time.h>
 
 namespace screen
 {
     // screen buffer
-    ws2812::led_color_t scr_screen[SCREEN_HEIGHT][SCREEN_WIDTH] __attribute__((aligned(4)));
+    static ws2812::led_color_t __scr_screen[2][SCREEN_HEIGHT][SCREEN_WIDTH] __attribute__((aligned(4)));
+    volatile static uint8_t __scr_screen_active = 0;
+    ws2812::led_color_t (*scr_screen)[SCREEN_HEIGHT][SCREEN_WIDTH];
+    ws2812::led_color_t (*__scr_screen_buffer)[SCREEN_HEIGHT][SCREEN_WIDTH]; // the screen buffer to send to the led strips
+    // posted when it is safe to output a new set of values to ws2812
+    static struct semaphore __scr_processing_screen_buffer;
+    bool scr_gamma_correction = true;
+    bool scr_dither = true;
 
     // dithering buffers
     static ws2812::led_color_t
-        _dither_e[SCREEN_HEIGHT][SCREEN_WIDTH],
-        _dither_v[SCREEN_HEIGHT][SCREEN_WIDTH];
+        __dither_e[SCREEN_HEIGHT][SCREEN_WIDTH],
+        __dither_v[SCREEN_HEIGHT][SCREEN_WIDTH];
 
     // profile
     volatile scr_profile_t scr_profile;
 
     void scr_clear_screen()
     {
-        memset(scr_screen, 0, sizeof(scr_screen));
+        memset((void *)scr_screen, 0, sizeof(*scr_screen));
     }
 
     static uint8_t gamma8_lookup[256];
@@ -34,16 +42,29 @@ namespace screen
     static int _scr_dma_channel = -1;
     const static auto _scr_word_multiple = sizeof(ws2812::led_color_t) % 4 == 0;
 
+    static void __scr_draw_screen();
+    static void __scr_screen_draw_loop()
+    {
+        while (true)
+        {
+            __scr_draw_screen();
+        }
+    }
+
     void scr_screen_init()
     {
         ws2812::WS2812_init();
 
         screen_set_gamma(2.8);
 
-        memset(_dither_e, 0, sizeof(_dither_e));
-        memset(_dither_v, 0, sizeof(_dither_v));
+        memset(__dither_e, 0, sizeof(__dither_e));
+        memset(__dither_v, 0, sizeof(__dither_v));
 
+        scr_screen = &(__scr_screen[__scr_screen_active]);
         scr_clear_screen();
+        __scr_screen_buffer = &(__scr_screen[1 - __scr_screen_active]);
+        memset((void *)__scr_screen_buffer, 0, sizeof(*__scr_screen_buffer));
+        sem_init(&__scr_processing_screen_buffer, 1, 1); // initially posted so we don't block first time
 
         _scr_dma_channel = dma_claim_unused_channel(true);
 
@@ -60,9 +81,57 @@ namespace screen
             NULL,             // The initial read address
             0,                // Number of transfers; we will set this later
             false);           // Don't start immediately
+
+        multicore_launch_core1(__scr_screen_draw_loop);
     }
 
-    static void inline reverse_copy_pixels_to_led_colors(ws2812::led_color_t *led_colors, const ws2812::led_color_t *pixels, const int n)
+    void scr_screen_swap(const bool gamma, const bool dither)
+    {
+        sem_acquire_blocking(&__scr_processing_screen_buffer);
+
+        scr_gamma_correction = gamma;
+        scr_dither = dither;
+
+        __scr_screen_buffer = scr_screen;
+        sem_release(&__scr_processing_screen_buffer);
+
+        __scr_screen_active ^= 1;
+        scr_screen = &(__scr_screen[__scr_screen_active]);
+
+        scr_clear_screen();
+    }
+
+    inline void _gamma_correction()
+    {
+        for (int y = 0; y < SCREEN_HEIGHT; y++)
+        {
+            for (int x = 0; x < SCREEN_WIDTH; x++)
+            {
+                ws2812::led_color_t *pixel = &((*__scr_screen_buffer)[y][x]);
+                pixel->r = gamma8_lookup[pixel->r];
+                pixel->g = gamma8_lookup[pixel->g];
+                pixel->b = gamma8_lookup[pixel->b];
+            }
+        }
+    }
+
+    inline void _dithering()
+    {
+        for (int y = 0; y < SCREEN_HEIGHT; y++)
+        {
+            for (int x = 0; x < SCREEN_WIDTH; x++)
+            {
+                __dither_v[y][x].r = ((*__scr_screen_buffer)[y][x].r + __dither_e[y][x].r) >> 1;
+                __dither_v[y][x].g = ((*__scr_screen_buffer)[y][x].g + __dither_e[y][x].g) >> 1;
+                __dither_v[y][x].b = ((*__scr_screen_buffer)[y][x].b + __dither_e[y][x].b) >> 1;
+                __dither_e[y][x].r = ((*__scr_screen_buffer)[y][x].r + __dither_e[y][x].r) - (__dither_v[y][x].r << 1);
+                __dither_e[y][x].g = ((*__scr_screen_buffer)[y][x].g + __dither_e[y][x].g) - (__dither_v[y][x].g << 1);
+                __dither_e[y][x].b = ((*__scr_screen_buffer)[y][x].b + __dither_e[y][x].b) - (__dither_v[y][x].b << 1);
+            }
+        }
+    }
+
+    static void inline _reverse_copy_pixels_to_led_colors(ws2812::led_color_t *led_colors, const ws2812::led_color_t *pixels, const int n)
     {
         pixels = pixels + n - 1;
         for (int i = 0; i < n; i++)
@@ -71,7 +140,7 @@ namespace screen
         }
     }
 
-    static void inline forward_copy_pixels_to_led_colors(ws2812::led_color_t *led_colors, const ws2812::led_color_t *pixels, const int n)
+    static void inline _forward_copy_pixels_to_led_colors(ws2812::led_color_t *led_colors, const ws2812::led_color_t *pixels, const int n)
     {
         dma_channel_wait_for_finish_blocking(_scr_dma_channel);
 
@@ -79,36 +148,6 @@ namespace screen
         dma_hw->ch[_scr_dma_channel].al2_transfer_count = transfer_count;
         dma_hw->ch[_scr_dma_channel].al2_read_addr = (uint32_t)pixels;
         dma_hw->ch[_scr_dma_channel].al2_write_addr_trig = (uint32_t)led_colors;
-    }
-
-    inline void gamma_correction()
-    {
-        for (int y = 0; y < SCREEN_HEIGHT; y++)
-        {
-            for (int x = 0; x < SCREEN_WIDTH; x++)
-            {
-                ws2812::led_color_t *pixel = &scr_screen[y][x];
-                pixel->r = gamma8_lookup[pixel->r];
-                pixel->g = gamma8_lookup[pixel->g];
-                pixel->b = gamma8_lookup[pixel->b];
-            }
-        }
-    }
-
-    inline void dithering()
-    {
-        for (int y = 0; y < SCREEN_HEIGHT; y++)
-        {
-            for (int x = 0; x < SCREEN_WIDTH; x++)
-            {
-                _dither_v[y][x].r = (scr_screen[y][x].r + _dither_e[y][x].r) >> 1;
-                _dither_v[y][x].g = (scr_screen[y][x].g + _dither_e[y][x].g) >> 1;
-                _dither_v[y][x].b = (scr_screen[y][x].b + _dither_e[y][x].b) >> 1;
-                _dither_e[y][x].r = (scr_screen[y][x].r + _dither_e[y][x].r) - (_dither_v[y][x].r << 1);
-                _dither_e[y][x].g = (scr_screen[y][x].g + _dither_e[y][x].g) - (_dither_v[y][x].g << 1);
-                _dither_e[y][x].b = (scr_screen[y][x].b + _dither_e[y][x].b) - (_dither_v[y][x].b << 1);
-            }
-        }
     }
 
     // this function copies the screen buffer to the led_colors buffer, following the specific arrangement of the led matrices
@@ -131,11 +170,11 @@ namespace screen
                 {
                     if (matrix_row & 1)
                     {
-                        reverse_copy_pixels_to_led_colors(led, pixel, ws2812::LED_MATRIX_WIDTH);
+                        _reverse_copy_pixels_to_led_colors(led, pixel, ws2812::LED_MATRIX_WIDTH);
                     }
                     else
                     {
-                        forward_copy_pixels_to_led_colors(led, pixel, ws2812::LED_MATRIX_WIDTH);
+                        _forward_copy_pixels_to_led_colors(led, pixel, ws2812::LED_MATRIX_WIDTH);
                     }
                     led += ws2812::LED_MATRIX_WIDTH;
                     pixel -= SCREEN_WIDTH;
@@ -152,26 +191,26 @@ namespace screen
         timer = absolute_time_diff_us(start_time, get_absolute_time()); \
     }
 
-    void scr_draw_screen(const bool gamma, const bool dither)
+    static void __scr_draw_screen()
     {
-
+        sem_acquire_blocking(&__scr_processing_screen_buffer);
 #ifdef WS2812_PARALLEL
         static int frame_buffer_index = 0;
 #endif
 
         // apply gamma correction
         PROFILE_CALL(
-            gamma ? gamma_correction() : void(),
+            scr_gamma_correction ? _gamma_correction() : void(),
             scr_profile.time_gamma_correction);
 
         // apply dithering
         PROFILE_CALL(
-            dither ? dithering() : void(),
+            scr_dither ? _dithering() : void(),
             scr_profile.time_dithering);
 
         // convert the screen buffer to led colors
         PROFILE_CALL(
-            screen_to_led_colors(dither ? (ws2812::led_color_t *)_dither_v : (ws2812::led_color_t *)scr_screen),
+            screen_to_led_colors(scr_dither ? (ws2812::led_color_t *)__dither_v : (ws2812::led_color_t *)__scr_screen_buffer),
             scr_profile.time_screen_to_led_colors);
 
         // convert the colors to bit planes
@@ -180,6 +219,7 @@ namespace screen
             led_colors_to_bitplanes(ws2812::led_strips_bitstream[frame_buffer_index], (ws2812::led_color_t *)ws2812::led_colors),
             scr_profile.time_led_colors_to_bitplanes);
 #endif
+        sem_release(&__scr_processing_screen_buffer);
 
         PROFILE_CALL(
             ws2812::wait_for_led_colors_transmission(),

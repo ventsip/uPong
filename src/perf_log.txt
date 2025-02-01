@@ -1,5 +1,6 @@
 performance log
 
+FPS 252; gamma_correction: 000258 us; dithering: 000629 us; screen_to_led_colors: 000059 us; led_colors_to_bitplanes: 000000 us; DMA: 006812 us
 FPS 129; gamma_correction: 000238 us; dithering: 000514 us; screen_to_led_colors: 000056 us; led_colors_to_bitplanes: 000000 us; DMA: 003276 us
 FPS 129;                                                    screen_to_led_colors: 000776 us; led_colors_to_bitplanes: 000000 us; DMA: 003636 us
 FPS 129;                                                    screen_to_led_colors: 000310 us; led_colors_to_bitplanes: 000000 us; DMA: 004137 us
