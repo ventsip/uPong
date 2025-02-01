@@ -43,10 +43,11 @@ namespace screen
     const static auto _scr_word_multiple = sizeof(ws2812::led_color_t) % 4 == 0;
 
     static void __scr_draw_screen();
-    static void __scr_screen_draw_loop()
+    void __scr_screen_draw_loop()
     {
         while (true)
         {
+            sleep_ms(10); // todo: why????
             __scr_draw_screen();
         }
     }
@@ -60,11 +61,13 @@ namespace screen
         memset(__dth_e, 0, sizeof(__dth_e));
         memset(__dth_v, 0, sizeof(__dth_v));
 
+        __scr_screen_active = 0;
         scr_screen = &(__scr_screen[__scr_screen_active]);
         scr_clear_screen();
         __scr_screen_buffer = &(__scr_screen[1 - __scr_screen_active]);
         memset((void *)__scr_screen_buffer, 0, sizeof(*__scr_screen_buffer));
-        sem_init(&__scr_processing_screen_buffer, 1, 1); // initially posted so we don't block first time
+
+        sem_init(&__scr_processing_screen_buffer, 1, 1);
 
         _scr_dma_channel = dma_claim_unused_channel(true);
 

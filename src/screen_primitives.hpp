@@ -78,7 +78,7 @@ namespace screen
         }
     }
 
-    static void draw_line(int x0, int y0, int x1, int y1, const ws2812::led_color_t c)
+    static inline void draw_line(int x0, int y0, int x1, int y1, const ws2812::led_color_t c)
     {
         if (x0 == x1)
         {

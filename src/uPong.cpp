@@ -40,22 +40,24 @@ int main()
     int frame = 0;
     int frame_rate = 0;
 
-    absolute_time_t last_time = {0};
+    absolute_time_t last_time = get_absolute_time();
+    absolute_time_t last_frame_time = last_time;
 
     pong_game::game_init();
     while (true)
     {
         set_status_led(frame & 1);
 
-        absolute_time_t current_time = get_absolute_time();
-        if (absolute_time_diff_us(last_time, current_time) >= 1000000)
+        const absolute_time_t current_frame_time = get_absolute_time();
+        if (absolute_time_diff_us(last_time, current_frame_time) >= 1000000)
         {
             frame_rate = frame;
             frame = 0;
-            last_time = current_time;
+            last_time = current_frame_time;
         }
 
-        pong_game::game_update();
+        pong_game::game_update(current_frame_time, absolute_time_diff_us(last_frame_time, current_frame_time));
+        last_frame_time = current_frame_time;
         pong_game::game_draw();
 
         printf("FPS %d; ", frame_rate);
