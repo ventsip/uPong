@@ -139,7 +139,9 @@ namespace ws2812
 #ifdef WS2812_PARALLEL
     void transmit_led_colors_dma(int active_planes)
     {
-        dma_channel_hw_addr(ws2812_dma_channel)->al3_read_addr_trig = (uintptr_t)(led_strips_bitstream + active_planes);
+        sem_acquire_blocking(&ws2812_transmitting_led_colors_sem);
+        dma_channel_hw_addr(ws2812_dma_channel)
+            ->al3_read_addr_trig = (uintptr_t)(led_strips_bitstream + active_planes);
     }
 #endif
 #ifdef WS2812_SINGLE
@@ -211,6 +213,8 @@ namespace ws2812
 #ifdef WS2812_SINGLE
     void transmit_led_colors()
     {
+        sem_acquire_blocking(&ws2812_transmitting_led_colors_sem);
+
         hard_assert(sizeof(sm_mask) / sizeof(uint) == 3);
         // disable all state machines
         pio_set_sm_multi_mask_enabled(pio1, sm_mask[0], sm_mask[1], sm_mask[2], false);
@@ -291,9 +295,4 @@ namespace ws2812
         }
     }
 #endif
-
-    void wait_for_led_colors_transmission()
-    {
-        sem_acquire_blocking(&ws2812_transmitting_led_colors_sem);
-    }
 }

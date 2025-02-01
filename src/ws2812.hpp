@@ -60,7 +60,6 @@ namespace ws2812
 
     bool WS2812_init();
     void clear_led_colors();
-    void wait_for_led_colors_transmission();
 
 #ifdef WS2812_SINGLE
     void transmit_led_colors();

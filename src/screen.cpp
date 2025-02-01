@@ -93,10 +93,11 @@ namespace screen
         scr_dither = dither;
 
         __scr_screen_buffer = scr_screen;
-        sem_release(&__scr_processing_screen_buffer);
 
         __scr_screen_active ^= 1;
         scr_screen = &(__scr_screen[__scr_screen_active]);
+
+        sem_release(&__scr_processing_screen_buffer);
 
         scr_clear_screen();
     }
@@ -221,16 +222,16 @@ namespace screen
 #endif
         sem_release(&__scr_processing_screen_buffer);
 
-        PROFILE_CALL(
-            ws2812::wait_for_led_colors_transmission(),
-            scr_profile.time_wait_for_DMA);
-
 #ifdef WS2812_PARALLEL
-        ws2812::transmit_led_colors_dma(frame_buffer_index);
+        PROFILE_CALL(
+            ws2812::transmit_led_colors_dma(frame_buffer_index),
+            scr_profile.time_wait_for_DMA);
         frame_buffer_index ^= 1;
 #endif
 #ifdef WS2812_SINGLE
-        ws2812::transmit_led_colors();
+        PROFILE_CALL(
+            ws2812::transmit_led_colors(),
+            scr_profile.time_wait_for_DMA);
 #endif
     }
 }
