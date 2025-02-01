@@ -25,8 +25,8 @@ namespace ws2812
 #endif
 #ifdef WS2812_SINGLE
     static led_color_t __led_colors[2][NMB_STRIPS][LEDS_PER_STRIP] __attribute__((aligned(4)));
-    static int led_colors_active = 0;
-    led_color_t (*led_colors)[NMB_STRIPS][LEDS_PER_STRIP] = &(__led_colors[led_colors_active]);
+    volatile static int __led_colors_active = 0;
+    led_color_t (*led_colors)[NMB_STRIPS][LEDS_PER_STRIP] = &(__led_colors[__led_colors_active]);
     static const auto led_colors_size = sizeof(__led_colors) / 2;
 #endif
 
@@ -65,6 +65,7 @@ namespace ws2812
         {
             // clear IRQ
             dma_hw->ints0 = ws2812_dma_mask;
+
             // when the dma is complete we start the reset delay timer
             if (ws2812_reset_alarm_id)
             {
@@ -131,7 +132,7 @@ namespace ws2812
         ws2812_dma_mask |= 1u << ws2812_dma_channels[0];
 
         dma_channel_set_irq0_enabled(ws2812_dma_channels[0], true);
-        irq_set_exclusive_handler(DMA_IRQ_0, ws2812_dma_complete_handler);
+        irq_add_shared_handler(DMA_IRQ_0, ws2812_dma_complete_handler, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
         irq_set_enabled(DMA_IRQ_0, true);
     }
 #endif
@@ -208,14 +209,14 @@ namespace ws2812
         uint32_t dma_all_channel_mask = 0;
         for (int i = 0; i < NMB_STRIPS; i++)
         {
-            dma_channel_set_read_addr(ws2812_dma_channels[i], __led_colors[led_colors_active][i], false);
+            dma_channel_set_read_addr(ws2812_dma_channels[i], __led_colors[__led_colors_active][i], false);
             dma_all_channel_mask |= 1u << ws2812_dma_channels[i];
         }
         dma_start_channel_mask(dma_all_channel_mask);
 
         // swap the led_colors buffer
-        led_colors_active ^= 1;
-        led_colors = &(__led_colors[led_colors_active]);
+        __led_colors_active ^= 1;
+        led_colors = &(__led_colors[__led_colors_active]);
 
         // wait until all state machines have non-empty TX FIFOs
         bool ready = false;

@@ -58,7 +58,7 @@ int main()
 
         pong_game::game_update(current_frame_time, absolute_time_diff_us(last_frame_time, current_frame_time));
         last_frame_time = current_frame_time;
-        pong_game::game_draw();
+        pong_game::game_draw(false, false);
 
         printf("FPS %d; ", frame_rate);
         // printf("unit tests %s; ", tests ? "passed" : "failed");

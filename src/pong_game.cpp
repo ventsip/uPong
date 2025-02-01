@@ -78,7 +78,7 @@ namespace pong_game
         }
     }
 
-    void game_draw()
+    void game_draw(const bool gamma, const bool dither)
     {
         screen::scr_clear_screen();
 
@@ -95,7 +95,7 @@ namespace pong_game
         // draw right paddle
         screen::draw_vertical_line(screen::SCREEN_WIDTH - 1, right_paddle_y - 1, right_paddle_y + 1, COLOR_WHITE);
 
-        screen::scr_screen_swap(true, true);
+        screen::scr_screen_swap(gamma, dither);
     }
 
     void game_exit()
