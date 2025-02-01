@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #pragma pack(push, 1)
 static const uint8_t font_3x5_missing_char[5] = {
     0b101101,

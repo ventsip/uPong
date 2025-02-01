@@ -1,6 +1,10 @@
 #pragma once
 
-#include "fonts.h"
+#include <cstdio>
+#include <pico/types.h>
+#include <stdlib.h>
+
+#include "fonts.hpp"
 #include "screen.hpp"
 #include "ws2812.hpp"
 

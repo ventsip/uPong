@@ -1,27 +1,9 @@
-#pragma once
 #include "hardware/gpio.h"
+
+#include "rotary_encoder.hpp"
 
 namespace rotary_encoder
 {
-
-    typedef struct
-    {
-        uint8_t a;
-        uint8_t b;
-        uint8_t sw;
-
-        volatile uint8_t a_b_trail;
-        volatile int32_t counter;
-        volatile uint8_t sw_trail;
-        volatile uint8_t sw_state;
-    } rotary_encoder;
-
-    enum
-    {
-        ROTARY_ENCODER_SW_RELEASED = 0,
-        ROTARY_ENCODER_SW_PRESSED,
-    };
-
 #define NUM_ROTARY_ENCODERS 2
     rotary_encoder rotary_encoders[] = {
         {22, 26, 27, 0, 0, 0, ROTARY_ENCODER_SW_RELEASED},
@@ -110,7 +92,7 @@ namespace rotary_encoder
         gpio_set_irq_enabled_with_callback(re->sw, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, rotary_encoders_callback);
     }
 
-    void static configure_rotary_encoders(void)
+    void rotary_encoders_init(void)
     {
         for (int i = 0; i < NUM_ROTARY_ENCODERS; i++)
         {

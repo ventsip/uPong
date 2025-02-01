@@ -34,7 +34,7 @@ project(uPong C CXX ASM)
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
-add_executable(uPong src/uPong.cpp src/ws2812.cpp src/screen.cpp)
+add_executable(uPong src/uPong.cpp src/ws2812.cpp src/screen.cpp src/pong_game.cpp src/rotary_encoder.cpp)
 
 pico_set_program_name(uPong "uPong")
 pico_set_program_version(uPong "0.1")

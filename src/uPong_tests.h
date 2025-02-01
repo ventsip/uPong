@@ -1,7 +1,7 @@
 #pragma once
 #include <math.h>
 
-#include "screen_primitives.h"
+#include "screen_primitives.hpp"
 #include "ws2812.hpp"
 
 using namespace screen;
@@ -233,13 +233,13 @@ void screen_pattern_lines_1(absolute_time_t, int counter, int brightness)
 
 void screen_pattern_scroll_text(absolute_time_t, int counter, int brightness)
 {
-    counter /= 10;
+    counter /= 50;
     // string that contain all characters from code 32 to 126
     static const char text[] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ Well, hello there. Price tag: $25.00. baba.meca@gorata.com";
 
     // draw text
-    int x = SCREEN_WIDTH - (counter % (12 + strlen(text)) * 4);
-    draw_3x5_string(text, x, SCREEN_HEIGHT - 13, ws2812_pack_color(brightness, brightness, brightness));
+    int x = SCREEN_WIDTH - 4 * (counter % (12 + strlen(text)));
+    draw_3x5_string(text, x, SCREEN_HEIGHT - 24, ws2812_pack_color(brightness, brightness, brightness));
 }
 
 void screen_pattern_color_squares(absolute_time_t, __unused int counter, int brightness)
