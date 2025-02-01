@@ -1,6 +1,6 @@
 #include <hardware/dma.h>
 #include <hardware/pio.h>
-#include <pico/sem.h>
+#include <pico/mutex.h>
 #include <string.h>
 
 #include "ws2812.hpp"
@@ -46,7 +46,7 @@ namespace ws2812
     static unsigned int ws2812_dma_mask = 0;
 
     // posted when it is safe to output a new set of values to ws2812
-    static struct semaphore ws2812_transmitting_led_colors_sem;
+    mutex_t __mutex_transmitting_led_colors;
 
     // alarm handle for handling the ws2812 reset delay
     static alarm_id_t ws2812_reset_alarm_id = 0;
@@ -54,7 +54,7 @@ namespace ws2812
     int64_t ws2812_reset_completed(__unused alarm_id_t id, __unused void *user_data)
     {
         ws2812_reset_alarm_id = 0;
-        sem_release(&ws2812_transmitting_led_colors_sem);
+        mutex_exit(&__mutex_transmitting_led_colors);
         // no repeat
         return 0;
     }
@@ -140,7 +140,7 @@ namespace ws2812
 #ifdef WS2812_PARALLEL
     void transmit_led_colors_dma(int active_planes)
     {
-        sem_acquire_blocking(&ws2812_transmitting_led_colors_sem);
+        sem_acquire_blocking(&__mutex_transmitting_led_colors);
         dma_channel_hw_addr(ws2812_dma_channel)
             ->al3_read_addr_trig = (uintptr_t)(led_strips_bitstream + active_planes);
     }
@@ -165,7 +165,7 @@ namespace ws2812
         auto success = pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_parallel_program, &pio, &sm, &offset, WS2812_PIN_BASE, NMB_STRIPS, true);
         hard_assert(success);
         ws2812_parallel_program_init(pio, sm, offset, WS2812_PIN_BASE, NMB_STRIPS, 800000);
-        sem_init(&ws2812_transmitting_led_colors_sem, 1, 1); // initially posted so we don't block first time
+        sem_init(&__mutex_transmitting_led_colors, 1, 1); // initially posted so we don't block first time
         ws2812_dma_init(pio, sm);
 
         return success;
@@ -185,7 +185,7 @@ namespace ws2812
 
             sm_mask[pio_get_index(pio[i])] |= 1u << sm[i];
         }
-        sem_init(&ws2812_transmitting_led_colors_sem, 1, 1); // initially posted so we don't block first time
+        mutex_init(&__mutex_transmitting_led_colors);
         ws2812_dma_init(pio, sm);
 
         // enable all state machines in sync
@@ -199,7 +199,7 @@ namespace ws2812
 #ifdef WS2812_SINGLE
     void transmit_led_colors()
     {
-        sem_acquire_blocking(&ws2812_transmitting_led_colors_sem);
+        mutex_enter_blocking(&__mutex_transmitting_led_colors);
 
         hard_assert(sizeof(sm_mask) / sizeof(uint) == 3);
         // disable all state machines

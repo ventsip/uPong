@@ -13,7 +13,7 @@ namespace screen
     ws2812::led_color_t (*scr_screen)[SCREEN_HEIGHT][SCREEN_WIDTH];
     ws2812::led_color_t (*__scr_screen_buffer)[SCREEN_HEIGHT][SCREEN_WIDTH]; // the screen buffer to send to the led strips
     // posted when it is safe to output a new set of values to ws2812
-    static struct semaphore __scr_processing_screen_buffer;
+    mutex_t __mutex_processing_screen_buffer;
     bool scr_gamma_correction = true;
     bool scr_dither = true;
 
@@ -47,7 +47,6 @@ namespace screen
     {
         while (true)
         {
-            sleep_ms(10); // todo: why????
             __scr_draw_screen();
         }
     }
@@ -67,7 +66,7 @@ namespace screen
         __scr_screen_buffer = &(__scr_screen[1 - __scr_screen_active]);
         memset((void *)__scr_screen_buffer, 0, sizeof(*__scr_screen_buffer));
 
-        sem_init(&__scr_processing_screen_buffer, 1, 1);
+        mutex_init(&__mutex_processing_screen_buffer);
 
         _scr_dma_channel = dma_claim_unused_channel(true);
 
@@ -90,7 +89,7 @@ namespace screen
 
     void scr_screen_swap(const bool gamma, const bool dither)
     {
-        sem_acquire_blocking(&__scr_processing_screen_buffer);
+        mutex_enter_blocking(&__mutex_processing_screen_buffer);
 
         scr_gamma_correction = gamma;
         scr_dither = dither;
@@ -100,7 +99,7 @@ namespace screen
         __scr_screen_active ^= 1;
         scr_screen = &(__scr_screen[__scr_screen_active]);
 
-        sem_release(&__scr_processing_screen_buffer);
+        mutex_exit(&__mutex_processing_screen_buffer);
 
         scr_clear_screen();
     }
@@ -197,7 +196,7 @@ namespace screen
 
     static void __scr_draw_screen()
     {
-        sem_acquire_blocking(&__scr_processing_screen_buffer);
+        mutex_enter_blocking(&__mutex_processing_screen_buffer);
 #ifdef WS2812_PARALLEL
         static int frame_buffer_index = 0;
 #endif
@@ -223,7 +222,7 @@ namespace screen
             led_colors_to_bitplanes(ws2812::led_strips_bitstream[frame_buffer_index], (ws2812::led_color_t *)ws2812::led_colors),
             scr_profile.time_led_colors_to_bitplanes);
 #endif
-        sem_release(&__scr_processing_screen_buffer);
+        mutex_exit(&__mutex_processing_screen_buffer);
 
 #ifdef WS2812_PARALLEL
         PROFILE_CALL(
