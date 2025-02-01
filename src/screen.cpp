@@ -19,8 +19,8 @@ namespace screen
 
     // dithering buffers
     static ws2812::led_color_t
-        __dither_e[SCREEN_HEIGHT][SCREEN_WIDTH],
-        __dither_v[SCREEN_HEIGHT][SCREEN_WIDTH];
+        __dth_e[SCREEN_HEIGHT][SCREEN_WIDTH],
+        __dth_v[SCREEN_HEIGHT][SCREEN_WIDTH];
 
     // profile
     volatile scr_profile_t scr_profile;
@@ -57,8 +57,8 @@ namespace screen
 
         screen_set_gamma(2.8);
 
-        memset(__dither_e, 0, sizeof(__dither_e));
-        memset(__dither_v, 0, sizeof(__dither_v));
+        memset(__dth_e, 0, sizeof(__dth_e));
+        memset(__dth_v, 0, sizeof(__dth_v));
 
         scr_screen = &(__scr_screen[__scr_screen_active]);
         scr_clear_screen();
@@ -122,12 +122,12 @@ namespace screen
         {
             for (int x = 0; x < SCREEN_WIDTH; x++)
             {
-                __dither_v[y][x].r = ((*__scr_screen_buffer)[y][x].r + __dither_e[y][x].r) >> 1;
-                __dither_v[y][x].g = ((*__scr_screen_buffer)[y][x].g + __dither_e[y][x].g) >> 1;
-                __dither_v[y][x].b = ((*__scr_screen_buffer)[y][x].b + __dither_e[y][x].b) >> 1;
-                __dither_e[y][x].r = ((*__scr_screen_buffer)[y][x].r + __dither_e[y][x].r) - (__dither_v[y][x].r << 1);
-                __dither_e[y][x].g = ((*__scr_screen_buffer)[y][x].g + __dither_e[y][x].g) - (__dither_v[y][x].g << 1);
-                __dither_e[y][x].b = ((*__scr_screen_buffer)[y][x].b + __dither_e[y][x].b) - (__dither_v[y][x].b << 1);
+                __dth_v[y][x].r = ((*__scr_screen_buffer)[y][x].r + __dth_e[y][x].r) >> 1;
+                __dth_v[y][x].g = ((*__scr_screen_buffer)[y][x].g + __dth_e[y][x].g) >> 1;
+                __dth_v[y][x].b = ((*__scr_screen_buffer)[y][x].b + __dth_e[y][x].b) >> 1;
+                __dth_e[y][x].r = ((*__scr_screen_buffer)[y][x].r + __dth_e[y][x].r) - (__dth_v[y][x].r << 1);
+                __dth_e[y][x].g = ((*__scr_screen_buffer)[y][x].g + __dth_e[y][x].g) - (__dth_v[y][x].g << 1);
+                __dth_e[y][x].b = ((*__scr_screen_buffer)[y][x].b + __dth_e[y][x].b) - (__dth_v[y][x].b << 1);
             }
         }
     }
@@ -211,7 +211,7 @@ namespace screen
 
         // convert the screen buffer to led colors
         PROFILE_CALL(
-            screen_to_led_colors(scr_dither ? (ws2812::led_color_t *)__dither_v : (ws2812::led_color_t *)__scr_screen_buffer),
+            screen_to_led_colors(scr_dither ? (ws2812::led_color_t *)__dth_v : (ws2812::led_color_t *)__scr_screen_buffer),
             scr_profile.time_screen_to_led_colors);
 
         // convert the colors to bit planes
