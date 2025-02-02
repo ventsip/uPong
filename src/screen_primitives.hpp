@@ -177,31 +177,48 @@ namespace screen
         return;
     }
 
+#define FIX_RECT_COORDS(x, y, w, h, screen_width, screen_height) \
+    if (x < 0)                                                   \
+    {                                                            \
+        w += x;                                                  \
+        x = 0;                                                   \
+    }                                                            \
+    if (y < 0)                                                   \
+    {                                                            \
+        h += y;                                                  \
+        y = 0;                                                   \
+    }                                                            \
+    if (x + w > screen_width)                                    \
+    {                                                            \
+        w = screen_width - x;                                    \
+    }                                                            \
+    if (y + h > screen_height)                                   \
+    {                                                            \
+        h = screen_height - y;                                   \
+    }                                                            \
+    if (w <= 0 || h <= 0)                                        \
+    {                                                            \
+        return;                                                  \
+    }
+
+    static inline void draw_rect(int x, int y, int w, int h, const ws2812::led_color_t c)
+    {
+        // fix coordinates to be within the screen
+        FIX_RECT_COORDS(x, y, w, h, SCREEN_WIDTH, SCREEN_HEIGHT)
+
+        for (int i = y; i < y + h; i++)
+        {
+            for (int j = x; j < x + w; j++)
+            {
+                (*scr_screen)[i][j] = c;
+            }
+        }
+    }
+
     static inline void draw_transparent_rect(int x, int y, int w, int h, const ws2812::led_color_t c, const uint8_t alpha)
     {
         // fix coordinates to be within the screen
-        if (x < 0)
-        {
-            w += x;
-            x = 0;
-        }
-        if (y < 0)
-        {
-            h += y;
-            y = 0;
-        }
-        if (x + w > SCREEN_WIDTH)
-        {
-            w = SCREEN_WIDTH - x;
-        }
-        if (y + h > SCREEN_HEIGHT)
-        {
-            h = SCREEN_HEIGHT - y;
-        }
-        if (w <= 0 || h <= 0)
-        {
-            return;
-        }
+        FIX_RECT_COORDS(x, y, w, h, SCREEN_WIDTH, SCREEN_HEIGHT)
 
         const uint16_t r_scaled = c.r * alpha;
         const uint16_t g_scaled = c.g * alpha;
@@ -270,18 +287,39 @@ namespace screen
         }
     }
 
-    void draw_3x5_string(const char *str, const int x, const int y, const ws2812::led_color_t c)
+    enum font_3x5_alignment_t
     {
-        for (int i = 0; str[i] != '\0'; i++)
+        FONT_3X5_CENTER = 0,
+        FONT_3X5_LEFT = 1,
+        FONT_3X5_RIGHT = 2
+    };
+
+    void
+    draw_3x5_string(const char *str, const int x, const int y, const ws2812::led_color_t c, const font_3x5_alignment_t alignment = FONT_3X5_LEFT)
+    {
+        switch (alignment)
         {
-            draw_3x5_char(str[i], x + i * 4, y, c);
+        case FONT_3X5_CENTER:
+            draw_3x5_string(str, x - strlen(str) * 4 / 2, y, c, FONT_3X5_LEFT);
+            break;
+
+        case FONT_3X5_RIGHT:
+            draw_3x5_string(str, x - strlen(str) * 4 + 1, y, c, FONT_3X5_LEFT);
+            break;
+
+        default:
+            for (int i = 0; str[i] != '\0'; i++)
+            {
+                draw_3x5_char(str[i], x + i * 4, y, c);
+            }
+            break;
         }
     }
 
-    void draw_3x5_number(const uint number, const int x, const int y, const ws2812::led_color_t c)
+    void draw_3x5_number(const uint number, const int x, const int y, const ws2812::led_color_t c, const font_3x5_alignment_t alignment = FONT_3X5_LEFT)
     {
         char buffer[16];
         snprintf(buffer, sizeof(buffer), "%u", number);
-        draw_3x5_string(buffer, x, y, c);
+        draw_3x5_string(buffer, x, y, c, alignment);
     }
 }
