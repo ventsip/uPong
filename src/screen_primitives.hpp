@@ -18,6 +18,23 @@ namespace screen
         }
     }
 
+    static inline void set_pixel(const int x, const int y, const ws2812::led_color_t c, const uint8_t alpha)
+    {
+        if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
+        {
+            const uint16_t r_scaled = c.r * alpha;
+            const uint16_t g_scaled = c.g * alpha;
+            const uint16_t b_scaled = c.b * alpha;
+
+            const uint8_t anti_alpha = 255 - alpha;
+            volatile ws2812::led_color_t *p = &(*scr_screen)[y][x];
+
+            p->g = (p->g * anti_alpha + g_scaled) >> 8;
+            p->r = (p->r * anti_alpha + r_scaled) >> 8;
+            p->b = (p->b * anti_alpha + b_scaled) >> 8;
+        }
+    }
+
     static inline void draw_vertical_line(const int x, int y0, int y1, const ws2812::led_color_t c)
     {
         if (x < 0 || x >= SCREEN_WIDTH)
@@ -294,8 +311,7 @@ namespace screen
         FONT_3X5_RIGHT = 2
     };
 
-    void
-    draw_3x5_string(const char *str, const int x, const int y, const ws2812::led_color_t c, const font_3x5_alignment_t alignment = FONT_3X5_LEFT)
+    void draw_3x5_string(const char *str, const int x, const int y, const ws2812::led_color_t c, const font_3x5_alignment_t alignment = FONT_3X5_LEFT)
     {
         switch (alignment)
         {
@@ -321,5 +337,29 @@ namespace screen
         char buffer[16];
         snprintf(buffer, sizeof(buffer), "%u", number);
         draw_3x5_string(buffer, x, y, c, alignment);
+    }
+
+    void draw_orb(const float x_c, const float y_c, const float radius, const ws2812::led_color_t c)
+    {
+        if (x_c + radius < 0 || x_c - radius >= SCREEN_WIDTH || y_c + radius < 0 || y_c - radius >= SCREEN_HEIGHT)
+        {
+            return;
+        }
+        if (radius <= 0)
+        {
+            (*scr_screen)[(int)y_c][(int)x_c] = c;
+        }
+
+        for (int x = x_c - radius; x <= x_c + radius + 1; x++)
+        {
+            for (int y = y_c - radius; y <= y_c + radius + 1; y++)
+            {
+                const float d = ((x - x_c) * (x - x_c) + (y - y_c) * (y - y_c)) / (radius * radius);
+                if (d <= 1)
+                {
+                    set_pixel(x, y, c, (1 - d) * 255);
+                }
+            }
+        }
     }
 }

@@ -50,17 +50,18 @@ namespace pong_game
     {
     private:
         CPoint position;
+        float radius;
         ws2812::led_color_t color;
         CVector velocity;
 
         const CField &field;
 
     public:
-        CBall(const CPoint &pos, const CVector &vel, ws2812::led_color_t color, const CField &field) : position(pos), color(color), velocity(vel), field(field) {}
+        CBall(const CPoint &pos, const float radius, const CVector &vel, ws2812::led_color_t color, const CField &field) : position(pos), radius(radius), color(color), velocity(vel), field(field) {}
 
         void draw()
         {
-            screen::set_pixel(position.x, position.y, color);
+            screen::draw_orb(position.x, position.y, radius, color);
         }
 
         void update(const float delta_time_s)
@@ -172,7 +173,7 @@ namespace pong_game
     }
 
     static CField field(0, 0, screen::SCREEN_WIDTH, screen::SCREEN_HEIGHT, COLOR_FIELD_LINE, COLOR_FIELD_LEFT, COLOR_FIELD_RIGHT);
-    static CBall ball(CPoint(field.getSize().x / 2, field.getSize().y / 2), CVector(20, 16), COLOR_BALL, field);
+    static CBall ball(CPoint(field.getSize().x / 2, field.getSize().y / 2), 1.5, CVector(40, 30), COLOR_BALL, field);
     static CPaddle left_paddle(CPoint(field.getPosition().x, field.getPosition().y + field.getSize().y / 2), COLOR_PADDLE, field);
     static CPaddle right_paddle(CPoint(field.getPosition().x + field.getSize().x - 1, field.getPosition().y + field.getSize().y / 2), COLOR_PADDLE, field);
     static CMatch match(5, screen::SCREEN_WIDTH / 2, 2, COLOR_SCORE);
