@@ -1,6 +1,7 @@
 #include "pong_game.hpp"
 #include "rotary_encoder.hpp"
 #include "screen_primitives.hpp"
+#include <math.h>
 
 namespace pong_game
 {
@@ -10,8 +11,33 @@ namespace pong_game
         float x;
         float y;
         CPoint(float x, float y) : x(x), y(y) {}
+
+        CPoint &operator+=(const CPoint &other)
+        {
+            x += other.x;
+            y += other.y;
+            return *this;
+        }
+
+        CPoint operator*(const float a) const
+        {
+            return CPoint(x * a, y * a);
+        }
     };
-    typedef CPoint CVector;
+
+    class CVector : public CPoint
+    {
+    public:
+        CVector(const float x, const float y) : CPoint(x, y) {}
+        CVector &rotate(const float angle)
+        {
+            const float x_new = x * cos(angle) - y * sin(angle);
+            const float y_new = x * sin(angle) + y * cos(angle);
+            x = x_new;
+            y = y_new;
+            return *this;
+        }
+    };
 
     class CMovablePoint
     {
@@ -22,8 +48,7 @@ namespace pong_game
         void update(const float delta_time_s)
         {
             pos_prev = pos_now;
-            pos_now.x += vel.x * delta_time_s;
-            pos_now.y += vel.y * delta_time_s;
+            pos_now += vel * delta_time_s;
         }
     };
 
@@ -81,7 +106,7 @@ namespace pong_game
         const CField &field;
 
     public:
-        CPaddle(const CPoint &pos, ws2812::led_color_t color, const CField &field) : CMovablePoint(pos, CPoint(0, 0)), color(color), field(field) {}
+        CPaddle(const CPoint &pos, ws2812::led_color_t color, const CField &field) : CMovablePoint(pos, CVector(0, 0)), color(color), field(field) {}
 
         void draw()
         {
@@ -184,7 +209,11 @@ namespace pong_game
             if (offset_y >= -2 && offset_y <= 2)
             {
                 ball.vel.x = -ball.vel.x;
-                ball.vel.y += 3 * offset_y;
+                ball.vel.rotate(offset_y * 5 * 3.14159 / 180);
+                if (ball.vel.x <= 0)
+                {
+                    ball.vel.rotate(-offset_y * 5 * 3.14159 / 180);
+                }
             }
         }
         if (ball.pos_now.x > right_paddle.pos_now.x - 1 && ball.pos_prev.x <= right_paddle.pos_prev.x - 1)
@@ -193,7 +222,11 @@ namespace pong_game
             if (offset_y >= -2 && offset_y <= 2)
             {
                 ball.vel.x = -ball.vel.x;
-                ball.vel.y += 3 * offset_y;
+                ball.vel.rotate(offset_y * 5 * 3.14159 / 180);
+                if (ball.vel.x >= 0)
+                {
+                    ball.vel.rotate(-offset_y * 5 * 3.14159 / 180);
+                }
             }
         }
 
