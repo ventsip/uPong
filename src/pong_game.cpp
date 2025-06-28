@@ -1,7 +1,8 @@
+#include <math.h>
+
 #include "pong_game.hpp"
 #include "rotary_encoder.hpp"
 #include "screen_primitives.hpp"
-#include <math.h>
 
 namespace pong_game
 {
@@ -31,8 +32,11 @@ namespace pong_game
         CVector(const float x, const float y) : CPoint(x, y) {}
         CVector &rotate(const float angle)
         {
-            const float x_new = x * cos(angle) - y * sin(angle);
-            const float y_new = x * sin(angle) + y * cos(angle);
+            // Pre-compute sin and cos to avoid redundant calculations
+            const float sin_angle = sin(angle);
+            const float cos_angle = cos(angle);
+            const float x_new = x * cos_angle - y * sin_angle;
+            const float y_new = x * sin_angle + y * cos_angle;
             x = x_new;
             y = y_new;
             return *this;
@@ -173,7 +177,8 @@ namespace pong_game
     static const ws2812::led_color_t COLOR_PADDLE = ws2812_pack_color(brightness, brightness, brightness);
     static const ws2812::led_color_t COLOR_SCORE = ws2812_pack_color(brightness, brightness, brightness);
 
-    static float paddle_speed = .25; // pixels per click
+    static float paddle_speed = .25;      // pixels per click
+    static float ball_initial_speed = 20; // pixels per second
 
     void game_init()
     {
@@ -181,10 +186,29 @@ namespace pong_game
     }
 
     static CField field(0, 0, screen::SCREEN_WIDTH, screen::SCREEN_HEIGHT, COLOR_FIELD_LINE, COLOR_FIELD_LEFT, COLOR_FIELD_RIGHT);
-    static CBall ball(CPoint(field.getSize().x / 2, field.getSize().y / 2), 1.5, CVector(20, 0), COLOR_BALL);
+    static CBall ball(CPoint(field.getSize().x / 2, field.getSize().y / 2), 1.5, CVector(ball_initial_speed, 0), COLOR_BALL);
     static CPaddle left_paddle(CPoint(field.getPosition().x, field.getPosition().y + field.getSize().y / 2), COLOR_PADDLE, field);
     static CPaddle right_paddle(CPoint(field.getPosition().x + field.getSize().x - 1, field.getPosition().y + field.getSize().y / 2), COLOR_PADDLE, field);
     static CMatch match(5, screen::SCREEN_WIDTH / 2, 2, COLOR_SCORE);
+
+    // Combine similar paddle collision code into a single function
+    bool check_paddle_collision(const CPaddle& paddle, float prev_x, bool is_left_paddle) {
+        if ((is_left_paddle && ball.pos_now.x < paddle.pos_now.x + 1 && ball.pos_prev.x >= paddle.pos_prev.x + 1) ||
+            (!is_left_paddle && ball.pos_now.x > paddle.pos_now.x - 1 && ball.pos_prev.x <= paddle.pos_prev.x - 1)) {
+            
+            const auto offset_y = ball.pos_now.y - paddle.pos_now.y;
+            if (offset_y >= -2 && offset_y <= 2) {
+                ball.vel.x = -ball.vel.x;
+                const float rotation = offset_y * 5 * 3.14159f / 180.0f;
+                ball.vel.rotate(rotation);
+                if ((is_left_paddle && ball.vel.x <= 0) || (!is_left_paddle && ball.vel.x >= 0)) {
+                    ball.vel.rotate(-rotation);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
 
     void game_update(const absolute_time_t /*current_time*/, const absolute_time_t delta_time_us)
     {
@@ -203,32 +227,8 @@ namespace pong_game
         ball.update(delta_time_s);
 
         // check if ball trajectory intersects with paddles
-        if (ball.pos_now.x < left_paddle.pos_now.x + 1 && ball.pos_prev.x >= left_paddle.pos_prev.x + 1)
-        {
-            const auto offset_y = ball.pos_now.y - left_paddle.pos_now.y;
-            if (offset_y >= -2 && offset_y <= 2)
-            {
-                ball.vel.x = -ball.vel.x;
-                ball.vel.rotate(offset_y * 5 * 3.14159 / 180);
-                if (ball.vel.x <= 0)
-                {
-                    ball.vel.rotate(-offset_y * 5 * 3.14159 / 180);
-                }
-            }
-        }
-        if (ball.pos_now.x > right_paddle.pos_now.x - 1 && ball.pos_prev.x <= right_paddle.pos_prev.x - 1)
-        {
-            const auto offset_y = ball.pos_now.y - right_paddle.pos_now.y;
-            if (offset_y >= -2 && offset_y <= 2)
-            {
-                ball.vel.x = -ball.vel.x;
-                ball.vel.rotate(offset_y * 5 * 3.14159 / 180);
-                if (ball.vel.x >= 0)
-                {
-                    ball.vel.rotate(-offset_y * 5 * 3.14159 / 180);
-                }
-            }
-        }
+        check_paddle_collision(left_paddle, left_paddle.pos_prev.x + 1, true);
+        check_paddle_collision(right_paddle, right_paddle.pos_prev.x - 1, false);
 
         // bounce ball off top and bottom of the field
         if (ball.pos_now.y < field.getPosition().y)
