@@ -63,3 +63,42 @@ rm -rf build
 ### Testing
 - Visual test patterns available in uPong_tests.h
 - Built-in diagnostics and performance measurements
+- Unit tests available for host development (see Testing section below)
+
+## Testing
+
+### Unit Tests (Host Testing)
+The project includes comprehensive unit tests that run on the host machine (macOS/Linux) without requiring Pico hardware.
+
+#### Build and Run Tests
+```bash
+# Create test build directory
+mkdir build-tests
+cd build-tests
+
+# Configure for host testing
+cmake .. -DBUILD_TESTING=ON
+
+# Build tests
+make
+
+# Run tests
+./uPong_tests
+```
+
+#### Test Coverage
+- **CPoint/CVector**: Vector math, rotation, scalar operations
+- **CMovablePoint**: Physics simulation and movement
+- **Collision Detection**: Paddle-ball collision logic
+- **Game Logic**: Ball bouncing, scoring, field boundaries
+
+#### Test Architecture
+- **Catch2**: Modern C++ testing framework
+- **Hardware Mocks**: Mock implementations of WS2812, screen, and rotary encoder interfaces
+- **Isolated Logic**: Game classes extracted for testing without hardware dependencies
+
+#### Adding New Tests
+1. Create test files in `tests/unit/`
+2. Include `game_logic.hpp` for testable classes
+3. Use Catch2 macros (`TEST_CASE`, `REQUIRE`, `Catch::Approx`)
+4. Update `tests/CMakeLists.txt` if needed

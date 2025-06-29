@@ -68,3 +68,9 @@ target_link_libraries(uPong
 
 pico_add_extra_outputs(uPong)
 
+# Add testing support
+option(BUILD_TESTING "Build tests" OFF)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+
